@@ -15,7 +15,8 @@
 		<div>
 			<div id='surfacePlotDiv' style="float: left; width: 450px; height: 450px;">
 				<!-- SurfacePlot goes here... -->
-			</div>
+			</div> 
+
 			<div id='surfacePlotDiv2' style="float: left; width: 450px; height: 450px;">
 	            <!-- another SurfacePlot goes here... -->
 	        </div>
@@ -28,8 +29,10 @@
         var numRows = 45; 
         var numCols = 45; 
             
-        var tooltipStrings = new Array();
-        var values = new Array();
+        var tooltipStrings1 = new Array();
+        var tooltipStrings2 = new Array();
+        var zvalues1 = new Array();
+        var zvalues2 = new Array();
             
         var d = 360 / numRows;
         var idx = 0;
@@ -40,27 +43,31 @@
             
         for (var i = 0; i < numRows; i++) 
         {   
-          values[i] = new Array();
+          zvalues1[i] = new Array();
+          zvalues2[i] = new Array();
           xvalues[i] = new Array();
           yvalues[i] = new Array();
           colors[i] = new Array();
               
           for (var j = 0; j < numCols; j++)
           {   
-            var value = 1000 * (Math.cos(i * d * Math.PI / 180.0) * Math.cos(j * d * Math.PI / 180.0) + Math.sin(i * d * Math.PI / 180.0));
+            var value1 = 1000 * (Math.cos(i * d * Math.PI / 180.0) * Math.cos(j * d * Math.PI / 180.0) + Math.sin(i * d * Math.PI / 180.0));
+            var value2 = 1000 * (Math.cos(i * d * Math.PI / 180.0) * Math.cos(j * d * Math.PI / 180.0) + Math.sin(i * d * Math.PI / 180.0));
                 
-            values[i][j] = value / 4.0 + 0.25;
+            zvalues1[i][j] = value1 / 4.0 + 0.25;
+            zvalues2[i][j] = value2 / 6.0 + 0.25;
             xvalues[i][j] = i;
             yvalues[i][j] = j;
             colors[i][j] = 0
                 
-            tooltipStrings[idx] = "x:" + i + ", y:" + j + " = " + value;
+            tooltipStrings1[idx] = "x:" + i + ", y:" + j + " = " + value1;
+            tooltipStrings2[idx] = "x:" + i + ", y:" + j + " = " + value2;
             idx++;
           }   
         }   
 
-        var data = {xValues: xvalues, yValues: yvalues, zValues: values};
-        var data2 = { zValues: values};
+        var data = {xValues: xvalues, yValues: yvalues, zValues: zvalues1, tooltips: tooltipStrings1};
+        var data2 = { zValues: zvalues2, tooltips: tooltipStrings2};
 				
 			mesh(document.getElementById("surfacePlotDiv"), data);
 			surf(document.getElementById("surfacePlotDiv2"), data2);

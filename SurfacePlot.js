@@ -31,7 +31,7 @@ SurfacePlot = function(container)
 };
 
 
-SurfacePlot.prototype.draw = function(data, options, basicPlotOptions)
+SurfacePlot.prototype.draw = function(data, options)
 {
     var xPos = options.xPos;
     var yPos = options.yPos;
@@ -51,9 +51,9 @@ SurfacePlot.prototype.draw = function(data, options, basicPlotOptions)
       var colourGradient = colours;
     }
     
-    var fillPolygons = basicPlotOptions.fillPolygons;
-    var tooltips = basicPlotOptions.tooltips;
-    var renderPoints = basicPlotOptions.renderPoints;
+    var fillPolygons = options.fillPolygons;
+    var tooltips = options.tooltips;
+    var renderPoints = options.renderPoints;
     
     var xTitle = options.xTitle;
     var yTitle = options.yTitle;
@@ -434,23 +434,27 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
         var zAxis = axes[2];
         
         canvasContext.fillStyle = this.axisTextColour;
+
+        xTicks = [0, 5, 10, 20];
+        yTicks = [-0.4, 0, 0.4, 30];
+        zTicks = [-100, 1000, 0];
         
         if ((euclidian_distance(cameraPosition, xLabelPoint) > euclidian_distance(cameraPosition, xOppositePoint)) ||
             (euclidian_distance(cameraPosition, xLabelPoint) > euclidian_distance(cameraPosition, centerPoint)))
         {
             canvasContext.fillText(xTitle, transformedxLabelPoint.ax, transformedxLabelPoint.ay);
 
-            //var xmax = this.nice_num(this.maxXValue);
-            //var xmin = this.nice_num(this.minXValue, true);
-            //valincrement = (xmax - xmin) / xTicks
-            //increment = 1 / xTicks
-            //for (i = -0.5, val = 0;
-            //     i <= 0.5;
-            //     i += increment, val += valincrement) {
-            //   var point = new Point3D(i, 0.5, -.05);
-            //   var transformedPoint = transformation.ChangeObjectPoint(point);
-            //   canvasContext.fillText(val, transformedPoint.ax, transformedPoint.ay);
-            //}
+            var xmax = this.nice_num(this.maxXValue);
+            var xmin = this.nice_num(this.minXValue, true);
+
+            for (i = 0; i < xTicks.length; i+= 1) {
+              val = xTicks[i];
+              x = ((val - xmin) / (xmax - xmin)) - 0.5
+              var point = new Point3D(x, 0.5, -0.5);
+              var transformedPoint = transformation.ChangeObjectPoint(point);
+              canvasContext.fillText(val, transformedPoint.ax, transformedPoint.ay);
+            }
+
         }
         
         if ((euclidian_distance(cameraPosition, yLabelPoint) > euclidian_distance(cameraPosition, yOppositePoint)) ||
@@ -458,17 +462,16 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
         {
             canvasContext.fillText(yTitle, transformedyLabelPoint.ax, transformedyLabelPoint.ay);
 
-            //var ymax = this.nice_num(this.maxYValue);
-            //var ymin = this.nice_num(this.minYValue, true);
-            //valincrement = (ymax - ymin) / yTicks
-            //increment = 1 / yTicks
-            //for (i = -0.5, val = 0;
-            //     i <= 0.5;
-            //     i += increment, val += valincrement) {
-            //   var point = new Point3D(-0.5, i, -.05);
-            //   var transformedPoint = transformation.ChangeObjectPoint(point);
-            //   canvasContext.fillText(val, transformedPoint.ax, transformedPoint.ay);
-            //}
+            var ymax = this.nice_num(this.maxYValue);
+            var ymin = this.nice_num(this.minYValue, true);
+
+            for (i = 0; i < yTicks.length; i+= 1) {
+              val = yTicks[i];
+              y = ((val - ymin) / (ymax - ymin)) - 0.5
+              var point = new Point3D(-0.5, y, -0.5);
+              var transformedPoint = transformation.ChangeObjectPoint(point);
+              canvasContext.fillText(val, transformedPoint.ax, transformedPoint.ay);
+            }
         }
         
         if ((euclidian_distance(cameraPosition, zLabelPoint) > euclidian_distance(cameraPosition, zOppositePoint)) ||
@@ -476,17 +479,18 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
         {
             canvasContext.fillText(zTitle, transformedzLabelPoint.ax, transformedzLabelPoint.ay);
 
-            //var zmax = this.nice_num(this.maxZValue);
-            //var zmin = this.nice_num(this.minZValue, true);
-            //valincrement = (zmax - zmin) / zTicks
-            //increment = 1 / zTicks
-            //for (i = -0.5, val = 0;
-            //     i <= 0.5;
-            //     i += increment, val += valincrement) {
-            //   var point = new Point3D(-.55, 0.55, i);
-            //   var transformedPoint = transformation.ChangeObjectPoint(point);
-            //   canvasContext.fillText(val, transformedPoint.ax, transformedPoint.ay);
-            //}
+            // TODO:  Fix this
+
+            var zmax = this.nice_num(this.maxZValue);
+            var zmin = this.nice_num(this.minZValue, true);
+
+            for (i = 0; i < zTicks.length; i+= 1) {
+              val = zTicks[i];
+              z = ((val - zmin) / (zmax - zmin)) - 0.5
+              var point = new Point3D(-0.5, 0.5, z);
+              var transformedPoint = transformation.ChangeObjectPoint(point);
+              canvasContext.fillText(val, transformedPoint.ax, transformedPoint.ay);
+            }
         }
     };
     
@@ -1478,8 +1482,6 @@ Tooltip = function(useExplicitPositions, tooltipColour)
             }
             else
                 tt.style.opacity = 1;
-            
-            
         }
         
         if (!useExplicitPositions)

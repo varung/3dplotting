@@ -29,22 +29,22 @@ function plot3d(element, data, fillPly)
         //var chartOrigin = {x: 150, y:150};
         
         // Options for the basic canvas pliot.
-        var basicPlotOptions = {fillPolygons: fillPly, tooltips: tooltipStrings, renderPoints: renderDataPoints }
-        
-        // Options for the webGL plot.
-        var xLabels = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-        var yLabels = [0, 1, 2, 3, 4, 5];
-        var zLabels = [0, 1, 2, 3, 4, 5, 6]; // These labels ar eused when autoCalcZScale is false;
-        var glOptions = {xLabels: xLabels, yLabels: yLabels, zLabels: zLabels, chkControlId: "allowWebGL" ,autoCalcZScale: false};
-        
-        // Options common to both types of plot.
-        var options = {xPos: 0, yPos: 0, width: 400, height: 400, colourGradient: colours, 
+        var options = {
+          fillPolygons: fillPly, 
+          tooltips: data.tooltips,
+          renderPoints: renderDataPoints,
+          xPos: 0, yPos: 0, 
+          width: 400, height: 400, 
+          colourGradient: colours, 
           xTitle: xAxisHeader, yTitle: yAxisHeader, zTitle: zAxisHeader, 
           xTicks: xticks, yTicks: yticks, zTicks: zticks, 
-          backColour: background, axisTextColour: axisForeColour, hideFlatMinPolygons: hideFloorPolygons, origin: chartOrigin};
+          backColour: background, 
+          axisTextColour: axisForeColour, 
+          hideFlatMinPolygons: hideFloorPolygons, 
+          origin: chartOrigin};
 
         surfacePlot = new SurfacePlot(element);
-        surfacePlot.draw(data, options, basicPlotOptions, glOptions);
+        surfacePlot.draw(data, options);
 }
       
 // data has the following fields:
