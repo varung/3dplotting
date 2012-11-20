@@ -1,4 +1,4 @@
-function plot3d(element, data, fillPly)
+function plot3d(element, data, options)
       {
 
         // Define a colour gradient.
@@ -17,9 +17,12 @@ function plot3d(element, data, fillPly)
         var yAxisHeader =  "Y";
         var zAxisHeader =  "Z";
 
-        var xticks = 10;
-        var yticks = 10;
-        var zticks = 10;
+        var xticks = [0, 5, 10, 20];
+        var yticks = [-0.4, 0, 0.4, 30];
+        var zticks = [-100, 1000, 0];
+        //var xticks; 
+        //var yticks;
+        //var zticks;
         
         var renderDataPoints = false;
         var background = '#ffffff';
@@ -28,20 +31,42 @@ function plot3d(element, data, fillPly)
         var chartOrigin = {x: 200, y:300};
         //var chartOrigin = {x: 150, y:150};
         
+        var numRows = data.zValues.length;
+        var numCols = data.zValues[0].length;
+
+        if (! ("tooltips" in options)) {
+          var tooltipStrings = new Array();
+          var idx = 0;
+          for (var i = 0; i < numRows; i++) 
+          {   
+            for (var j = 0; j < numCols; j++)
+            {   
+              tooltipStrings[idx] = "x:" + data.xValues[i][j]
+                               + ",\ny:" + data.yValues[i][j]
+                               + ",\nz:" + data.zValues[i][j];
+              idx++;
+            }   
+          }   
+          options.tooltips = tooltipStrings;
+        }
+
         // Options for the basic canvas pliot.
-        var options = {
-          fillPolygons: fillPly, 
-          tooltips: data.tooltips,
-          renderPoints: renderDataPoints,
-          xPos: 0, yPos: 0, 
-          width: 400, height: 400, 
-          colourGradient: colours, 
-          xTitle: xAxisHeader, yTitle: yAxisHeader, zTitle: zAxisHeader, 
-          xTicks: xticks, yTicks: yticks, zTicks: zticks, 
-          backColour: background, 
-          axisTextColour: axisForeColour, 
-          hideFlatMinPolygons: hideFloorPolygons, 
-          origin: chartOrigin};
+        options.renderPoints = renderDataPoints;
+        options.xPos = 0;
+        options.yPos  = 0; 
+        options.width  = 400;
+        options.height = 400;
+        options.colourGradient = colours;
+        options.xTitle = xAxisHeader;
+        options.yTitle = yAxisHeader;
+        options.zTitle = zAxisHeader;
+        options.xTicks = xticks;
+        options.yTicks = yticks; 
+        options.zTicks = zticks;
+        options.backColour = background;
+        options.axisTextColour = axisForeColour;
+        options.hideFlatMinPolygons = hideFloorPolygons; 
+        options.origin = chartOrigin;
 
         surfacePlot = new SurfacePlot(element);
         surfacePlot.draw(data, options);
@@ -52,10 +77,12 @@ function plot3d(element, data, fillPly)
 //  - xValues, yValues:  specify x and y coordinates.  Default to mesh([1, ... , n], [1, ... , m])
 //  - Colors:  defaults to using normalized z values
 
-function surf(element, data) {
-  plot3d(element, data, true)
+function surf(element, data, options) {
+  options.fillPolygons = true
+  plot3d(element, data, options)
 }
 
-function mesh(element, data) {
-  plot3d(element, data, false)
+function mesh(element, data, options) {
+  options.fillPolygons = false
+  plot3d(element, data, options)
 }

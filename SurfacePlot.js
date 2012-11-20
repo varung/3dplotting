@@ -249,9 +249,9 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
         
         for (var i = 0; i < this.numXPoints; i++) {
             for (var j = 0; j < this.numYPoints; j++) {
-                var value = this.data.zValues[i][j];
                 var xvalue = this.data.xValues[i][j];
                 var yvalue = this.data.yValues[i][j];
+                var zvalue = this.data.zValues[i][j];
                 
                 if (xvalue < this.minXValue) 
                     this.minXValue = xvalue;
@@ -265,11 +265,11 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
                 if (yvalue > this.maxYValue) 
                     this.maxYValue = yvalue;
 
-                if (value < this.minZValue) 
-                    this.minZValue = value;
+                if (zvalue < this.minZValue) 
+                    this.minZValue = zvalue;
                 
-                if (value > this.maxZValue) 
-                    this.maxZValue = value;
+                if (zvalue > this.maxZValue) 
+                    this.maxZValue = zvalue;
             }
         }
 
@@ -435,10 +435,6 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
         
         canvasContext.fillStyle = this.axisTextColour;
 
-        xTicks = [0, 5, 10, 20];
-        yTicks = [-0.4, 0, 0.4, 30];
-        zTicks = [-100, 1000, 0];
-        
         if ((euclidian_distance(cameraPosition, xLabelPoint) > euclidian_distance(cameraPosition, xOppositePoint)) ||
             (euclidian_distance(cameraPosition, xLabelPoint) > euclidian_distance(cameraPosition, centerPoint)))
         {
@@ -1583,7 +1579,7 @@ Tooltip = function(useExplicitPositions, tooltipColour)
 JSSurfacePlot.DEFAULT_X_ANGLE   = 47;
 JSSurfacePlot.DEFAULT_Z_ANGLE   = 47;
 JSSurfacePlot.DATA_DOT_SIZE     = 5;
-JSSurfacePlot.DEFAULT_SCALE     = 350;
+JSSurfacePlot.DEFAULT_SCALE     = 200;
 JSSurfacePlot.MIN_SCALE         = 50;
 JSSurfacePlot.MAX_SCALE         = 1100;
 JSSurfacePlot.SCALE_FACTOR      = 1.4;

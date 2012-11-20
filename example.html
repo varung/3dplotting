@@ -60,17 +60,19 @@
             yvalues[i][j] = j;
             colors[i][j] = 0
                 
-            tooltipStrings1[idx] = "x:" + i + ", y:" + j + " = " + value1;
-            tooltipStrings2[idx] = "x:" + i + ", y:" + j + " = " + value2;
+            tooltipStrings1[idx] = "x:" + i + ",\ny:" + j + ",z:" + zvalues1;
+            tooltipStrings2[idx] = "x:" + i + ",\ny:" + j + ",z:" + zvalues2;
             idx++;
           }   
         }   
 
-        var data = {xValues: xvalues, yValues: yvalues, zValues: zvalues1, tooltips: tooltipStrings1};
-        var data2 = { zValues: zvalues2, tooltips: tooltipStrings2};
+      var options = {}
+
+      var data = {xValues: xvalues, yValues: yvalues, zValues: zvalues1};
+      var data2 = { zValues: zvalues2};
 				
-			mesh(document.getElementById("surfacePlotDiv"), data);
-			surf(document.getElementById("surfacePlotDiv2"), data2);
+			mesh(document.getElementById("surfacePlotDiv"), data, options);
+			surf(document.getElementById("surfacePlotDiv2"), data2, options);
 			
 			function toggleChart(chkbox)
             { 
