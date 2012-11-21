@@ -29,8 +29,6 @@
         var numRows = 45; 
         var numCols = 45; 
             
-        var tooltipStrings1 = new Array();
-        var tooltipStrings2 = new Array();
         var zvalues1 = new Array();
         var zvalues2 = new Array();
             
@@ -56,12 +54,9 @@
                 
             zvalues1[i][j] = value1 / 4.0 + 0.25;
             zvalues2[i][j] = value2 / 6.0 + 0.25;
-            xvalues[i][j] = i;
-            yvalues[i][j] = j;
+            xvalues[i][j] = i / 2;
+            yvalues[i][j] = j / 2;
             colors[i][j] = 0
-                
-            tooltipStrings1[idx] = "x:" + i + ",\ny:" + j + ",z:" + zvalues1;
-            tooltipStrings2[idx] = "x:" + i + ",\ny:" + j + ",z:" + zvalues2;
             idx++;
           }   
         }   

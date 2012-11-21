@@ -217,28 +217,8 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
     
     this.prepareData = function()
     {
-        this.numXPoints = this.data.zValues.length;
-        this.numYPoints = this.data.zValues[0].length;
-        if (! (("xValues" in this.data) && ("yValues" in this.data)) ) {
-           var xVals = new Array();
-           var yVals = new Array();
-           var xDivision = 1 / (this.numXPoints - 1);
-           var yDivision = 1 / (this.numYPoints - 1);
-           for (var x = -0.5, i = 0; i < this.numXPoints; x = x + xDivision, i++){
-               xVals[i] = new Array();
-               yVals[i] = new Array();
-               for (var y = 0.5, j = 0; j < this.numYPoints; y = y - yDivision, j++) {
-                 xVals[i][j] = x; 
-                 yVals[i][j] = y; 
-               }    
-           }    
-           if (!("xValues" in this.data)) {
-             this.data.xValues = xVals;
-           }    
-           if (! ("yValues" in this.data)) {
-             this.data.yValues = yVals;
-           }    
-        }    
+      this.numXPoints = this.data.zValues.length;
+      this.numYPoints = this.data.zValues[0].length;
 
     	this.minXValue = Number.MAX_VALUE;
       this.maxXValue = Number.MIN_VALUE;
@@ -247,31 +227,37 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
     	this.minZValue = Number.MAX_VALUE;
       this.maxZValue = Number.MIN_VALUE;
         
-        for (var i = 0; i < this.numXPoints; i++) {
-            for (var j = 0; j < this.numYPoints; j++) {
-                var xvalue = this.data.xValues[i][j];
-                var yvalue = this.data.yValues[i][j];
-                var zvalue = this.data.zValues[i][j];
-                
-                if (xvalue < this.minXValue) 
-                    this.minXValue = xvalue;
+      for (var i = 0; i < this.numXPoints; i++) {
+          for (var j = 0; j < this.numYPoints; j++) {
+              var xvalue = this.data.xValues[i][j];
+              var yvalue = this.data.yValues[i][j];
+              var zvalue = this.data.zValues[i][j];
+              
+              if (xvalue < this.minXValue) 
+                  this.minXValue = xvalue;
 
-                if (xvalue > this.maxXValue) 
-                    this.maxXValue = xvalue;
+              if (xvalue > this.maxXValue) 
+                  this.maxXValue = xvalue;
 
-                if (yvalue < this.minYValue) 
-                    this.minYValue = yvalue;
+              if (yvalue < this.minYValue) 
+                  this.minYValue = yvalue;
 
-                if (yvalue > this.maxYValue) 
-                    this.maxYValue = yvalue;
+              if (yvalue > this.maxYValue) 
+                  this.maxYValue = yvalue;
 
-                if (zvalue < this.minZValue) 
-                    this.minZValue = zvalue;
-                
-                if (zvalue > this.maxZValue) 
-                    this.maxZValue = zvalue;
-            }
-        }
+              if (zvalue < this.minZValue) 
+                  this.minZValue = zvalue;
+              
+              if (zvalue > this.maxZValue) 
+                  this.maxZValue = zvalue;
+          }
+      }
+    	console.log(this.minXValue);
+      console.log(this.maxXValue);
+    	console.log(this.minYValue);
+      console.log(this.maxYValue);
+    	console.log(this.minZValue);
+      console.log(this.maxZValue);
 
 
     }
@@ -411,10 +397,6 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
 
     this.renderAxisText = function(axes)
     {
-        //var xLabelPoint = new Point3D(0.0, 0.5, -0.5);
-        //var yLabelPoint = new Point3D(-0.5, 0.0, -0.5);
-        //var zLabelPoint = new Point3D(-0.5, 0.5, 0.5);
-
         var xLabelPoint = new Point3D(0.5, 0.5, -0.5);
         var yLabelPoint = new Point3D(-0.5, -0.5, -0.5);
         var zLabelPoint = new Point3D(-0.5, 0.5, 0.5);
@@ -440,8 +422,9 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
         {
             canvasContext.fillText(xTitle, transformedxLabelPoint.ax, transformedxLabelPoint.ay);
 
-            var xmax = this.nice_num(this.maxXValue);
-            var xmin = this.nice_num(this.minXValue, true);
+            // TODO: get rid of this
+            var xmax = this.maxXValue; //this.nice_num(this.maxXValue);
+            var xmin = this.minXValue; //this.nice_num(this.minXValue, true);
 
             for (i = 0; i < xTicks.length; i+= 1) {
               val = xTicks[i];
@@ -458,8 +441,8 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
         {
             canvasContext.fillText(yTitle, transformedyLabelPoint.ax, transformedyLabelPoint.ay);
 
-            var ymax = this.nice_num(this.maxYValue);
-            var ymin = this.nice_num(this.minYValue, true);
+            var ymax = this.maxYValue; //this.nice_num(this.maxYValue);
+            var ymin = this.minYValue; //this.nice_num(this.minYValue, true);
 
             for (i = 0; i < yTicks.length; i+= 1) {
               val = yTicks[i];
@@ -475,10 +458,8 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
         {
             canvasContext.fillText(zTitle, transformedzLabelPoint.ax, transformedzLabelPoint.ay);
 
-            // TODO:  Fix this
-
-            var zmax = this.nice_num(this.maxZValue);
-            var zmin = this.nice_num(this.minZValue, true);
+            var zmax = this.maxZValue; //this.nice_num(this.maxZValue);
+            var zmin = this.minZValue; //this.nice_num(this.minZValue, true);
 
             for (i = 0; i < zTicks.length; i+= 1) {
               val = zTicks[i];
