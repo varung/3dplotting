@@ -195,20 +195,14 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
         
         var maxZAxisValue = this.maxZValue;
         var minZAxisValue = this.minZValue;
-        //var maxAxisValue = this.nice_num(this.maxZValue);
-        //var minAxisValue = this.nice_num(this.minZValue, true);
         this.zToRender = this.scaleAndNormalize(this.data.zValues, minZAxisValue, maxZAxisValue, -0.5, 0.5);
 
         var maxXAxisValue = this.maxXValue;
         var minXAxisValue = this.minXValue;
-        //var maxXAxisValue = this.nice_num(this.maxXValue);
-        //var minXAxisValue = this.nice_num(this.minXValue, true);
         this.xToRender = this.scaleAndNormalize(this.data.xValues, minXAxisValue, maxXAxisValue, -0.5, 0.5);
 
         var maxYAxisValue = this.maxYValue;
         var minYAxisValue = this.minYValue;
-        //var maxYAxisValue = this.nice_num(this.maxYValue);
-        //var minYAxisValue = this.nice_num(this.minYValue, true);
         this.yToRender = this.scaleAndNormalize(this.data.yValues, minYAxisValue, maxYAxisValue, -0.5, 0.5);
     };
     
@@ -407,9 +401,15 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
     // Draw axis labels
     this.renderAxisText = function(axes)
     {
-        var xLabelPoint = new Point3D(0.5, 0.5, -0.5);
-        var yLabelPoint = new Point3D(-0.5, -0.5, -0.5);
-        var zLabelPoint = new Point3D(-0.5, 0.5, 0.5);
+        var axisshift = 0.1
+
+        // TODO: draw ticks
+        this.tickLength = 0.1 
+        var labelshift = this.tickLength
+
+        var xLabelPoint = new Point3D(0.5 + axisshift, 0.5, -0.5);
+        var yLabelPoint = new Point3D(-0.5, -0.5 - axisshift, -0.5);
+        var zLabelPoint = new Point3D(-0.5, 0.5, 0.5 + axisshift);
 
         var xOppositePoint = new Point3D(-0.5, -0.5, 0.5);
         var yOppositePoint = new Point3D(0.5, 0.5, 0.5);
@@ -425,23 +425,28 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
         var yAxis = axes[1];
         var zAxis = axes[2];
         
+        var axisfont = 'bold 18px sans-serif'
+        var labelfont = '12px sans-serif'
+        canvasContext.textAlign = 'center'; 
+
         canvasContext.fillStyle = this.axisTextColour;
 
         if ((euclidian_distance(cameraPosition, xLabelPoint) > euclidian_distance(cameraPosition, xOppositePoint)) ||
             (euclidian_distance(cameraPosition, xLabelPoint) > euclidian_distance(cameraPosition, centerPoint)))
         {
+            canvasContext.font = axisfont; 
             canvasContext.fillText(xTitle, transformedxLabelPoint.ax, transformedxLabelPoint.ay);
 
             // TODO: get rid of this
-            var xmax = this.maxXValue; //this.nice_num(this.maxXValue);
-            var xmin = this.minXValue; //this.nice_num(this.minXValue, true);
+            var xmax = this.maxXValue; 
+            var xmin = this.minXValue; 
 
             for (i = 0; i < this.xTicks.length; i+= 1) {
               val = this.xTicks[i];
               x = ((val - xmin) / (xmax - xmin)) - 0.5
-              var point = new Point3D(x, 0.5, -0.5);
+              var point = new Point3D(x, 0.5 + labelshift, -0.5 - labelshift);
               var transformedPoint = transformation.ChangeObjectPoint(point);
-              canvasContext.font = '9px'
+              canvasContext.font = labelfont; 
               canvasContext.fillText(val, transformedPoint.ax, transformedPoint.ay);
             }
 
@@ -450,16 +455,18 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
         if ((euclidian_distance(cameraPosition, yLabelPoint) > euclidian_distance(cameraPosition, yOppositePoint)) ||
             (euclidian_distance(cameraPosition, yLabelPoint) > euclidian_distance(cameraPosition, centerPoint)))
         {
+            canvasContext.font = axisfont; 
             canvasContext.fillText(yTitle, transformedyLabelPoint.ax, transformedyLabelPoint.ay);
 
-            var ymax = this.maxYValue; //this.nice_num(this.maxYValue);
-            var ymin = this.minYValue; //this.nice_num(this.minYValue, true);
+            var ymax = this.maxYValue; 
+            var ymin = this.minYValue; 
 
             for (i = 0; i < this.yTicks.length; i+= 1) {
               val = this.yTicks[i];
               y = ((val - ymin) / (ymax - ymin)) - 0.5
-              var point = new Point3D(-0.5, y, -0.5);
+              var point = new Point3D(-0.5 - labelshift, y, -0.5 - labelshift);
               var transformedPoint = transformation.ChangeObjectPoint(point);
+              canvasContext.font = labelfont; 
               canvasContext.fillText(val, transformedPoint.ax, transformedPoint.ay);
             }
         }
@@ -467,16 +474,18 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
         if ((euclidian_distance(cameraPosition, zLabelPoint) > euclidian_distance(cameraPosition, zOppositePoint)) ||
             (euclidian_distance(cameraPosition, zLabelPoint) > euclidian_distance(cameraPosition, centerPoint)))
         {
+            canvasContext.font = axisfont; 
             canvasContext.fillText(zTitle, transformedzLabelPoint.ax, transformedzLabelPoint.ay);
 
-            var zmax = this.maxZValue; //this.nice_num(this.maxZValue);
-            var zmin = this.minZValue; //this.nice_num(this.minZValue, true);
+            var zmax = this.maxZValue; 
+            var zmin = this.minZValue; 
 
             for (i = 0; i < this.zTicks.length; i+= 1) {
               val = this.zTicks[i];
               z = ((val - zmin) / (zmax - zmin)) - 0.5
-              var point = new Point3D(-0.5, 0.5, z);
+              var point = new Point3D(-0.5 - labelshift, 0.5 + labelshift, z);
               var transformedPoint = transformation.ChangeObjectPoint(point);
+              canvasContext.font = labelfont; 
               canvasContext.fillText(val, transformedPoint.ax, transformedPoint.ay);
             }
         }
