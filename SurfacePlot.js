@@ -107,6 +107,8 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
     this.xTicks = xTicks;
     this.yTicks = yTicks;
     this.zTicks = zTicks;
+    this.gridOn = true
+
     this.backColour = backColour;
     this.axisTextColour = axisTextColour;
     var targetDiv;
@@ -191,18 +193,6 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
         
         this.prepareData();
         this.createCanvas();
-        
-        var maxZAxisValue = this.maxZValue;
-        var minZAxisValue = this.minZValue;
-        this.zToRender = this.scaleAndNormalize(this.data.zValues, minZAxisValue, maxZAxisValue, -0.5, 0.5);
-
-        var maxXAxisValue = this.maxXValue;
-        var minXAxisValue = this.minXValue;
-        this.xToRender = this.scaleAndNormalize(this.data.xValues, minXAxisValue, maxXAxisValue, -0.5, 0.5);
-
-        var maxYAxisValue = this.maxYValue;
-        var minYAxisValue = this.minYValue;
-        this.yToRender = this.scaleAndNormalize(this.data.yValues, minYAxisValue, maxYAxisValue, -0.5, 0.5);
     };
     
     this.prepareData = function()
@@ -268,11 +258,11 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
   		document.onmousemove = null;
       document.onmousewheel = null;
 		
-		this.numXPoints = 0;
-    	this.numYPoints = 0;
-    	canvasContext = null;
-    	this.data = null;
-    	this.colourGradientObject = null;
+      this.numXPoints = 0;
+      this.numYPoints = 0;
+      canvasContext = null;
+      this.data = null;
+      this.colourGradientObject = null;
     }
     
     function hideTooltip()
@@ -336,7 +326,6 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
           for (i = 0; i < axes.length; i++)
               polygons[polygons.length] = axes[i];
 
-          this.gridOn = true
           if (this.gridOn) {
             var grid = this.createGrid();
             for (i = 0; i < grid.length; i++)
@@ -383,7 +372,7 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
                   var p2 = polygon.getPoint(1);
                   var p3 = polygon.getPoint(2);
                   var p4 = polygon.getPoint(3);
-        
+
                   var colourValue = (p1.color * 1.0 + p2.color * 1.0 + p3.color * 1.0 + p4.color * 1.0) / 4.0;
                   
                   var rgbColour = this.colourGradientObject.getColour(colourValue);
@@ -450,13 +439,9 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
             canvasContext.font = axisfont; 
             canvasContext.fillText(xTitle, transformedxLabelPoint.ax, transformedxLabelPoint.ay);
 
-            // TODO: get rid of this
-            var xmax = this.maxXValue; 
-            var xmin = this.minXValue; 
-
             for (i = 0; i < this.xTicks.length; i+= 1) {
               val = this.xTicks[i];
-              x = ((val - xmin) / (xmax - xmin)) - 0.5
+              x = this.scale_to(val, this.minXValue, this.maxXValue);
               var point = transformation.transformPoint(
                               new Point3D(x, 0.5 + labelshift, -0.5 - labelshift));
               canvasContext.font = labelfont; 
@@ -471,12 +456,9 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
             canvasContext.font = axisfont; 
             canvasContext.fillText(yTitle, transformedyLabelPoint.ax, transformedyLabelPoint.ay);
 
-            var ymax = this.maxYValue; 
-            var ymin = this.minYValue; 
-
             for (i = 0; i < this.yTicks.length; i+= 1) {
               val = this.yTicks[i];
-              y = ((val - ymin) / (ymax - ymin)) - 0.5
+              y = this.scale_to(val, this.minYValue, this.maxYValue);
               var point = transformation.transformPoint(
                               new Point3D(-0.5 - labelshift, y, -0.5 - labelshift));
               canvasContext.font = labelfont; 
@@ -490,12 +472,9 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
             canvasContext.font = axisfont; 
             canvasContext.fillText(zTitle, transformedzLabelPoint.ax, transformedzLabelPoint.ay);
 
-            var zmax = this.maxZValue; 
-            var zmin = this.minZValue; 
-
             for (i = 0; i < this.zTicks.length; i+= 1) {
               val = this.zTicks[i];
-              z = ((val - zmin) / (zmax - zmin)) - 0.5
+              z = this.scale_to(val, this.minZValue, this.maxZValue);
               var point = transformation.transformPoint(
                               new Point3D(-0.5 - labelshift, 0.5 + labelshift, z));
               canvasContext.font = labelfont; 
@@ -661,7 +640,7 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
         else
             cGradient = getDefaultColourRamp();
         
-        this.colourGradientObject = new ColourGradient(this.minZDataValue, this.maxZDataValue, cGradient);
+        this.colourGradientObject = new ColourGradient(-1, 1, cGradient);
         
         var canvasWidth = width;
         var canvasHeight = height;
@@ -687,24 +666,19 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
         var numPoints = this.numXPoints * this.numYPoints;
         data3ds = new Array();
         var index = 0;
-        var colIndex;
         
         for (i = 0; i < this.numXPoints; i++) {
             for (j = 0; j < this.numYPoints; j++) {
                 	
+                var x = this.scale_to(this.data.xValues[i][j], this.minXValue, this.maxXValue);
+                var y = this.scale_to(this.data.yValues[i][j], this.minYValue, this.maxYValue);
+                var z = this.scale_to(this.data.zValues[i][j], this.minZValue, this.maxZValue);
                 if ("Colors" in this.data) {
-                  data3ds[index] = new Point3D(this.xToRender[i][j],  
-                                               this.yToRender[i][j],  
-                                               this.zToRender[i][j],
-                                               this.data.Colors[i][j]); 
+                  var color = this.data.Colors[i][j];
                 } else {
-                  var color = this.scale_to(this.zToRender[i][colIndex], this.minZDataValue, this.maxZDataValue);
-                  data3ds[index] = new Point3D(this.xToRender[i][j],  
-                                               this.yToRender[i][j],  
-                                               this.zToRender[i][j],
-                                               this.data.zValues[i][j]);
-
+                  var color = this.scale_to(this.data.zValues[i][j], this.minZDataValue, this.maxZDataValue, -1, 1);
                 }
+                data3ds[index] = new Point3D(x, y, z, color);
                 index++;
             }
         }
@@ -757,45 +731,6 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
         targetDiv.appendChild(canvas);
     };
     
-    this.scaleAndNormalize = function(data, minAxisValue, maxAxisValue, min, max)
-    {
-      if (min === undefined) {
-        min = 0;
-      }
-      if (max === undefined) {
-        max = 1;
-      }
-		
-    	// Need to clone the data.
-    	var values = data.slice(0);
-		  for (var i = 0; i < this.numXPoints; i++) 
-		  	values[i] = data[i].slice(0);
-
-    	
-		// Now, do the scaling.
-
-    // a xmin + b = min
-    // a xmax + b = max 
-    var a = (max - min) / (maxAxisValue - minAxisValue);
-    var b = min - (minAxisValue * a);
-
-    var max = Number.MIN_VALUE
-    var min = Number.MAX_VALUE
-    var argmax = Number.MIN_VALUE
-    var argmin = Number.MAX_VALUE
-		for (var i = 0; i < this.numXPoints; i++) {
-			for (var j = 0; j < this.numYPoints; j++) {
-        if (values[i][j] > argmax) argmax = values[i][j];
-        if (values[i][j] < argmin) argmin = values[i][j];
-				values[i][j] = a * values[i][j] + b;
-        if (values[i][j] > max) max = values[i][j];
-        if (values[i][j] < min) min = values[i][j];
-      }
-    }
-
-		return values;
-    }
-    
     this.log = function(base, value)
   	{
   		return Math.log(value) / Math.log(base);
@@ -813,35 +748,26 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
   	this.nice_num = function(x, rounddown)
   	{
       if (x == 0) {
-        return 0
+        return 0;
       } else if (x < 0) {
         return - this.nice_num(-x, !rounddown)
       }
+
 	  	var exp = Math.floor(this.log(10, x));
 	  	var f = x/Math.pow(10, exp);
 	  	var nf;
   	
 	  	if (rounddown)
 	  	{
-	  		if (f >= 10)
-	  			nf = 10;
-	  		else if (f >= 5)
-	  			nf = 5;
-	  		else if (f >= 2)
-	  			nf = 2;
-	  		else
-	  			nf = 1;
-	  	}
-	  	else
-	  	{
-	  		if (f <= 1)
-	  			nf = 1;
-	  		else if (f <= 2)
-	  			nf = 2;
-	  		else if (f <= 5)
-	  			nf = 5;
-	  		else
-	  			nf = 10;
+        if (f >= 10)	nf = 10;
+        else if (f >= 5)	nf = 5;
+        else if (f >= 2)	nf = 2;
+        else nf = 1;
+	  	}	else {
+        if (f <= 1)	nf = 1;
+        else if (f <= 2)	nf = 2;
+        else if (f <= 5)	nf = 5;
+        else nf = 10;
 	  	}
 	  	
 	  	return nf * Math.pow(10, exp);
@@ -1574,18 +1500,12 @@ Tooltip = function(useExplicitPositions, tooltipColour)
                 i = a;
             }
         
-        alpha = a + (i * d);
-        tt.style.opacity = alpha * .01;
-        tt.style.filter = 'alpha(opacity=' + alpha + ')';
-        }
-        else
-        {
+            alpha = a + (i * d);
+            tt.style.opacity = alpha * .01;
+            tt.style.filter = 'alpha(opacity=' + alpha + ')';
+        } else {
             clearInterval(tt.timer);
-            
-            if (d == -1)
-            {
-                tt.style.display = 'none';
-            }
+            if (d == -1) tt.style.display = 'none';
         }
     }
     
@@ -1594,19 +1514,14 @@ Tooltip = function(useExplicitPositions, tooltipColour)
         if (tt == null)
             return;
     
-        if (!ie)
-        {
+        if (!ie) {
             clearInterval(tt.timer);
             tt.timer = setInterval(function(){fade(-1)},timer);
-        }
-        else
-        {
+        } else {
             tt.style.display = 'none';
         }
     };
 };
-
-
 
 JSSurfacePlot.DEFAULT_X_ANGLE   = 47;
 JSSurfacePlot.DEFAULT_Z_ANGLE   = 47;
