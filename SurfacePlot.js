@@ -58,9 +58,6 @@ SurfacePlot.prototype.draw = function(data, options)
     var xTitle = options.xTitle;
     var yTitle = options.yTitle;
     var zTitle = options.zTitle;
-    var xTicks = options.xTicks;
-    var yTicks = options.yTicks;
-    var zTicks = options.zTicks;
     var backColour = options.backColour;
     var axisTextColour = options.axisTextColour;
     var hideFlatMinPolygons = options.hideFlatMinPolygons;
@@ -73,7 +70,7 @@ SurfacePlot.prototype.draw = function(data, options)
         this.surfacePlot = new JSSurfacePlot(xPos, yPos, w, h, colourGradient, this.containerElement, 
         fillPolygons, tooltips, 
         xTitle, yTitle, zTitle, 
-        xTicks, yTicks, zTicks, 
+        options.xTicks, options.yTicks, options.zTicks, 
         renderPoints, backColour, axisTextColour,
         hideFlatMinPolygons, tooltipColour, origin, startXAngle, startZAngle, data);
 
@@ -196,11 +193,11 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
         this.prepareData();
         this.createCanvas();
         
-        var maxAxisValue = this.maxZValue;
-        var minAxisValue = this.minZValue;
+        var maxZAxisValue = this.maxZValue;
+        var minZAxisValue = this.minZValue;
         //var maxAxisValue = this.nice_num(this.maxZValue);
         //var minAxisValue = this.nice_num(this.minZValue, true);
-        this.dataToRender = this.scaleAndNormalize(this.data.zValues, minAxisValue, maxAxisValue, -0.5, 0.5);
+        this.zToRender = this.scaleAndNormalize(this.data.zValues, minZAxisValue, maxZAxisValue, -0.5, 0.5);
 
         var maxXAxisValue = this.maxXValue;
         var minXAxisValue = this.minXValue;
@@ -217,6 +214,7 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
     
     this.prepareData = function()
     {
+
       this.numXPoints = this.data.zValues.length;
       this.numYPoints = this.data.zValues[0].length;
 
@@ -229,36 +227,44 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
         
       for (var i = 0; i < this.numXPoints; i++) {
           for (var j = 0; j < this.numYPoints; j++) {
-              var xvalue = this.data.xValues[i][j];
-              var yvalue = this.data.yValues[i][j];
-              var zvalue = this.data.zValues[i][j];
+              var x = this.data.xValues[i][j];
+              var y = this.data.yValues[i][j];
+              var z = this.data.zValues[i][j];
               
-              if (xvalue < this.minXValue) 
-                  this.minXValue = xvalue;
-
-              if (xvalue > this.maxXValue) 
-                  this.maxXValue = xvalue;
-
-              if (yvalue < this.minYValue) 
-                  this.minYValue = yvalue;
-
-              if (yvalue > this.maxYValue) 
-                  this.maxYValue = yvalue;
-
-              if (zvalue < this.minZValue) 
-                  this.minZValue = zvalue;
-              
-              if (zvalue > this.maxZValue) 
-                  this.maxZValue = zvalue;
+              if (x < this.minXValue) this.minXValue = x;
+              if (x > this.maxXValue) this.maxXValue = x;
+              if (y < this.minYValue) this.minYValue = y;
+              if (y > this.maxYValue) this.maxYValue = y;
+              if (z < this.minZValue) this.minZValue = z;
+              if (z > this.maxZValue) this.maxZValue = z;
           }
       }
-    	console.log(this.minXValue);
-      console.log(this.maxXValue);
-    	console.log(this.minYValue);
-      console.log(this.maxYValue);
-    	console.log(this.minZValue);
-      console.log(this.maxZValue);
 
+      this.maxZDataValue = this.maxZValue;
+      this.minZDataValue = this.minZValue;
+
+      if (this.xTicks == undefined) 
+        this.xTicks = this.calculateTicks(this.minXValue, this.maxXValue);
+      if (this.yTicks == undefined) 
+        this.yTicks = this.calculateTicks(this.minYValue, this.maxYValue);
+      if (this.zTicks == undefined) 
+        this.zTicks = this.calculateTicks(this.minZValue, this.maxZValue);
+
+      for (i = 0; i < this.xTicks.length; i++) {
+        var x = this.xTicks[i];
+        if (x < this.minXValue) this.minXValue = x;
+        if (x > this.maxXValue) this.maxXValue = x;
+      }
+      for (i = 0; i < this.yTicks.length; i++) {
+        var y = this.yTicks[i];
+        if (y < this.minYValue) this.minYValue = y;
+        if (y > this.maxYValue) this.maxYValue = y;
+      }
+      for (i = 0; i < this.zTicks.length; i++) {
+        var z = this.zTicks[i];
+        if (z < this.minZValue) this.minZValue = z;
+        if (z > this.maxZValue) this.maxZValue = z;
+      }
 
     }
     
@@ -333,6 +339,9 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
           }
         
           var axes = this.createAxes();
+          if (this.gridOn) {
+            var grid = this.createGrid();
+          }
           var polygons = this.createPolygons(data3ds);
           
           for (i = 0; i < axes.length; i++)
@@ -395,6 +404,7 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
     };
     
 
+    // Draw axis labels
     this.renderAxisText = function(axes)
     {
         var xLabelPoint = new Point3D(0.5, 0.5, -0.5);
@@ -426,11 +436,12 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
             var xmax = this.maxXValue; //this.nice_num(this.maxXValue);
             var xmin = this.minXValue; //this.nice_num(this.minXValue, true);
 
-            for (i = 0; i < xTicks.length; i+= 1) {
-              val = xTicks[i];
+            for (i = 0; i < this.xTicks.length; i+= 1) {
+              val = this.xTicks[i];
               x = ((val - xmin) / (xmax - xmin)) - 0.5
               var point = new Point3D(x, 0.5, -0.5);
               var transformedPoint = transformation.ChangeObjectPoint(point);
+              canvasContext.font = '9px'
               canvasContext.fillText(val, transformedPoint.ax, transformedPoint.ay);
             }
 
@@ -444,8 +455,8 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
             var ymax = this.maxYValue; //this.nice_num(this.maxYValue);
             var ymin = this.minYValue; //this.nice_num(this.minYValue, true);
 
-            for (i = 0; i < yTicks.length; i+= 1) {
-              val = yTicks[i];
+            for (i = 0; i < this.yTicks.length; i+= 1) {
+              val = this.yTicks[i];
               y = ((val - ymin) / (ymax - ymin)) - 0.5
               var point = new Point3D(-0.5, y, -0.5);
               var transformedPoint = transformation.ChangeObjectPoint(point);
@@ -461,8 +472,8 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
             var zmax = this.maxZValue; //this.nice_num(this.maxZValue);
             var zmin = this.minZValue; //this.nice_num(this.minZValue, true);
 
-            for (i = 0; i < zTicks.length; i+= 1) {
-              val = zTicks[i];
+            for (i = 0; i < this.zTicks.length; i+= 1) {
+              val = this.zTicks[i];
               z = ((val - zmin) / (zmax - zmin)) - 0.5
               var point = new Point3D(-0.5, 0.5, z);
               var transformedPoint = transformation.ChangeObjectPoint(point);
@@ -517,6 +528,48 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
 
         var axes = new Array();
 
+        var xAxis = new Polygon(cameraPosition, true);
+        xAxis.addPoint(transformedAxisOrigin);
+        xAxis.addPoint(transformedXAxisEndPoint);
+        xAxis.calculateCentroid();
+        xAxis.calculateDistance();
+        axes[axes.length] = xAxis;
+
+        var yAxis = new Polygon(cameraPosition, true);
+        yAxis.addPoint(transformedAxisOrigin);
+        yAxis.addPoint(transformedYAxisEndPoint);
+        yAxis.calculateCentroid();
+        yAxis.calculateDistance();
+        axes[axes.length] = yAxis;
+
+        var zAxis = new Polygon(cameraPosition, true);
+        zAxis.addPoint(transformedAxisOrigin);
+        zAxis.addPoint(transformedZAxisEndPoint);
+        zAxis.calculateCentroid();
+        zAxis.calculateDistance();
+        axes[axes.length] = zAxis;
+        
+        return axes;
+    };
+    
+    this.createGrid = function()
+    {
+        var axisOrigin  = new Point3D(-0.5, 0.5, -0.5);
+        var xAxisEndPoint = new Point3D(0.5, 0.5, -0.5);
+        var yAxisEndPoint = new Point3D(-0.5, -0.5, -0.5);
+        var zAxisEndPoint = new Point3D(-0.5, 0.5, 0.5);
+    
+        var transformedAxisOrigin = transformation.ChangeObjectPoint(axisOrigin);
+        var transformedXAxisEndPoint = transformation.ChangeObjectPoint(xAxisEndPoint);
+        var transformedYAxisEndPoint = transformation.ChangeObjectPoint(yAxisEndPoint);
+        var transformedZAxisEndPoint = transformation.ChangeObjectPoint(zAxisEndPoint);
+
+        var axes = new Array();
+
+        for (yi = 0; yi < this.yTicks.length; yi ++) {
+          for (zi = 0; zi < this.zTicks.length; zi ++) {
+          }
+        }
         var xAxis = new Polygon(cameraPosition, true);
         xAxis.addPoint(transformedAxisOrigin);
         xAxis.addPoint(transformedXAxisEndPoint);
@@ -602,7 +655,7 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
         else
             cGradient = getDefaultColourRamp();
         
-        this.colourGradientObject = new ColourGradient(this.minZValue, this.maxZValue, cGradient);
+        this.colourGradientObject = new ColourGradient(this.minZDataValue, this.maxZDataValue, cGradient);
         
         var canvasWidth = width;
         var canvasHeight = height;
@@ -630,7 +683,7 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
         var index = 0;
         var colIndex;
         
-        var a = 1 / (this.maxZValue - this.minZValue);
+        var a = 1 / (this.maxZDataValue - this.minZDataValue);
         var b = 0.5 - (this.minZValue * a);
         for (i = 0; i < this.numXPoints; i++) {
             for (j = 0; j < this.numYPoints; j++) {
@@ -638,13 +691,13 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
                 if ("Colors" in this.data) {
                   data3ds[index] = new Point3D(this.xToRender[i][j],  
                                                this.yToRender[i][j],  
-                                               this.dataToRender[i][j],
+                                               this.zToRender[i][j],
                                                this.data.Colors[i][j]); 
                 } else {
-                  var color = a * this.dataToRender[i][colIndex] + b;
+                  var color = a * this.zToRender[i][colIndex] + b;
                   data3ds[index] = new Point3D(this.xToRender[i][j],  
                                                this.yToRender[i][j],  
-                                               this.dataToRender[i][j],
+                                               this.zToRender[i][j],
                                                this.data.zValues[i][j]);
 
                 }
@@ -782,21 +835,21 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
 	  	return nf * Math.pow(10, exp);
 	}
     
-    this.calculateZScale = function()
+    this.calculateTicks = function(min, max)
     {
-      	// Calculate the z-axis labels.
-      	var maxAxisValue = this.nice_num(this.maxZValue);
-      	var minAxisValue = this.nice_num(this.minZValue, true);
-		    var labels = [];
-		    var ticks = 10;
-		    var interval = (maxAxisValue - minAxisValue)/ticks;
-		    var rounded2dp;
+      	// Automatically generate ticks, given a min and max value.
+        var tickwidth = this.nice_num((max - min) / 2, true);
+      	var tick = tickwidth * Math.floor( min / tickwidth);
+		    var ticks = [];
 		    
-		    for (var i = 0; i <= ticks; i++)
+		    while (tick < max)
 		    {
-		    	rounded2dp = Math.round(i * interval * 100) / 100;
-		    	labels.push(rounded2dp);
+		    	ticks.push(tick);
+          tick += tickwidth;
 		    }
+		    ticks.push(tick);
+
+        return ticks
     }
     
     this.createCanvas = function()

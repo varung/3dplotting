@@ -55,12 +55,12 @@ function plot3d(element, data, options)
         var yAxisHeader =  "Y";
         var zAxisHeader =  "Z";
 
-        var xticks = [0, 5, 10, 20];
-        var yticks = [-0.4, 0, 0.4, 30];
-        var zticks = [-100, 1000, 0];
-        //var xticks; 
-        //var yticks;
-        //var zticks;
+        //var xticks = [0, 5, 10, 20];
+        //var yticks = [-0.4, 0, 0.4, 30];
+        //var zticks = [-100, 1000, 0];
+        var xticks; 
+        var yticks;
+        var zticks;
         
         var renderDataPoints = false;
         var background = '#ffffff';
