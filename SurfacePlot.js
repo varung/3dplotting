@@ -107,7 +107,10 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
     this.xTicks = xTicks;
     this.yTicks = yTicks;
     this.zTicks = zTicks;
+
+    this.tickLength = 0.05
     this.gridOn = true
+    this.ticksOn = true
 
     this.backColour = backColour;
     this.axisTextColour = axisTextColour;
@@ -319,6 +322,25 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
                   canvasContext.fill();
               }
           }
+
+          var xAxisCenterPoint = transformation.transformPoint(new Point3D(0, 0.5, -0.5));
+          var yAxisCenterPoint = transformation.transformPoint(new Point3D(-0.5, 0, -0.5));
+          var zAxisCenterPoint = transformation.transformPoint(new Point3D(-0.5, 0.5, 0));
+  
+          var xOppositePoint = transformation.transformPoint(new Point3D(0, -0.5, 0.5));
+          var yOppositePoint = transformation.transformPoint(new Point3D(0.5, 0, 0.5));
+          var zOppositePoint = transformation.transformPoint(new Point3D(0.5, -0.5, 0));
+  
+          var centerPoint = transformation.transformPoint(new Point3D(0.0, 0.0, 0.0));
+          
+          this.showX = ((euclidian_distance(cameraPosition, xAxisCenterPoint) > euclidian_distance(cameraPosition, xOppositePoint)) ||
+              (euclidian_distance(cameraPosition, xAxisCenterPoint) > euclidian_distance(cameraPosition, centerPoint)))
+  
+          this.showY = ((euclidian_distance(cameraPosition, yAxisCenterPoint) > euclidian_distance(cameraPosition, yOppositePoint)) ||
+              (euclidian_distance(cameraPosition, yAxisCenterPoint) > euclidian_distance(cameraPosition, centerPoint)))
+  
+          this.showZ  = ((euclidian_distance(cameraPosition, zAxisCenterPoint) > euclidian_distance(cameraPosition, zOppositePoint)) ||
+              (euclidian_distance(cameraPosition, zAxisCenterPoint) > euclidian_distance(cameraPosition, centerPoint)))
         
           var polygons = this.createPolygons(data3ds);
 
@@ -330,6 +352,12 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
             var grid = this.createGrid();
             for (i = 0; i < grid.length; i++)
                 polygons[polygons.length] = grid[i];
+          }
+
+          if (this.ticksOn) {
+            var ticks = this.createTicks();
+            for (i = 0; i < ticks.length; i++)
+                polygons[polygons.length] = ticks[i];
           }
         
           // Sort the polygons so that the closest ones are rendered last
@@ -344,29 +372,7 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
           {
               var polygon = polygons[i];
               
-              if (polygon.isAxis)
-              {
-                  var p1 = polygon.getPoint(0);
-                  var p2 = polygon.getPoint(1);
-                  
-                  canvasContext.beginPath();
-                  canvasContext.moveTo(p1.ax, p1.ay);
-                  canvasContext.lineTo(p2.ax, p2.ay);
-                  canvasContext.strokeStyle='#000'; // axis color
-                  canvasContext.stroke();
-              }
-              else if (polygon.isGridline)
-              {
-                  var p1 = polygon.getPoint(0);
-                  var p2 = polygon.getPoint(1);
-                  
-                  canvasContext.beginPath();
-                  canvasContext.moveTo(p1.ax, p1.ay);
-                  canvasContext.lineTo(p2.ax, p2.ay);
-                  canvasContext.strokeStyle='rgba(0, 0, 0, 0.1)'; // axis color
-                  canvasContext.stroke();
-              }
-              else
+              if (polygon.type == "data") 
               {
                   var p1 = polygon.getPoint(0);
                   var p2 = polygon.getPoint(1);
@@ -392,85 +398,77 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
                   else
                       canvasContext.stroke();
               }
+              else  // drawing a line of some sort
+              {
+                 var p1 = polygon.getPoint(0);
+                 var p2 = polygon.getPoint(1);
+                 canvasContext.beginPath();
+                 canvasContext.moveTo(p1.ax, p1.ay);
+                 canvasContext.lineTo(p2.ax, p2.ay);
+                 if (polygon.type == "axis") {
+                     canvasContext.strokeStyle='rgb(0, 0, 0)'; // axis color
+                 } else if (polygon.type == "tick") {
+                     canvasContext.strokeStyle='rgba(0, 0, 0, 0.5)'; // axis color
+                 } else if (polygon.type == "grid") {
+                     canvasContext.strokeStyle='rgba(0, 0, 0, 0.1)'; // axis color
+                 }
+                 canvasContext.stroke();
+              }
           }
           
           if (supports_canvas())
-              this.renderAxisText(axes);
+              this.renderAxisText();
         
     };
     
 
     // Draw axis labels
-    this.renderAxisText = function(axes)
+    this.renderAxisText = function()
     {
         var axisshift = 0.1
+        var labelshift = this.tickLength + 0.05;
 
-        // TODO: draw ticks
-        this.tickLength = 0.1 
-        var labelshift = this.tickLength
+        var xLabelPoint = transformation.transformPoint(new Point3D(0.5 + axisshift, 0.5, -0.5));
+        var yLabelPoint = transformation.transformPoint(new Point3D(-0.5, -0.5 - axisshift, -0.5));
+        var zLabelPoint = transformation.transformPoint(new Point3D(-0.5, 0.5, 0.5 + axisshift));
 
-        var xLabelPoint = new Point3D(0.5 + axisshift, 0.5, -0.5);
-        var yLabelPoint = new Point3D(-0.5, -0.5 - axisshift, -0.5);
-        var zLabelPoint = new Point3D(-0.5, 0.5, 0.5 + axisshift);
-
-        var xOppositePoint = new Point3D(-0.5, -0.5, 0.5);
-        var yOppositePoint = new Point3D(0.5, 0.5, 0.5);
-        var zOppositePoint = new Point3D(0.5, -0.5, -0.5);
-
-        var centerPoint = new Point3D(0.0, 0.0, 0.0);
-        
-        var transformedyLabelPoint = transformation.transformPoint(yLabelPoint);
-        var transformedzLabelPoint = transformation.transformPoint(zLabelPoint);
-        var transformedxLabelPoint = transformation.transformPoint(xLabelPoint);
-        
-        var xAxis = axes[0];
-        var yAxis = axes[1];
-        var zAxis = axes[2];
-        
         var axisfont = 'bold 18px sans-serif'
         var labelfont = '12px sans-serif'
         canvasContext.textAlign = 'center'; 
 
         canvasContext.fillStyle = this.axisTextColour;
 
-        if ((euclidian_distance(cameraPosition, xLabelPoint) > euclidian_distance(cameraPosition, xOppositePoint)) ||
-            (euclidian_distance(cameraPosition, xLabelPoint) > euclidian_distance(cameraPosition, centerPoint)))
-        {
+        if (this.showX) {
             canvasContext.font = axisfont; 
-            canvasContext.fillText(xTitle, transformedxLabelPoint.ax, transformedxLabelPoint.ay);
+            canvasContext.fillText(xTitle, xLabelPoint.ax, xLabelPoint.ay);
 
             for (i = 0; i < this.xTicks.length; i+= 1) {
               val = this.xTicks[i];
               x = this.scale_to(val, this.minXValue, this.maxXValue);
               var point = transformation.transformPoint(
-                              new Point3D(x, 0.5 + labelshift, -0.5 - labelshift));
+                              new Point3D(x, 0.5 + labelshift, -0.5));
               canvasContext.font = labelfont; 
               canvasContext.fillText(val, point.ax, point.ay);
             }
-
         }
         
-        if ((euclidian_distance(cameraPosition, yLabelPoint) > euclidian_distance(cameraPosition, yOppositePoint)) ||
-            (euclidian_distance(cameraPosition, yLabelPoint) > euclidian_distance(cameraPosition, centerPoint)))
-        {
+        if (this.showY) {
             canvasContext.font = axisfont; 
-            canvasContext.fillText(yTitle, transformedyLabelPoint.ax, transformedyLabelPoint.ay);
+            canvasContext.fillText(yTitle, yLabelPoint.ax, yLabelPoint.ay);
 
             for (i = 0; i < this.yTicks.length; i+= 1) {
               val = this.yTicks[i];
               y = this.scale_to(val, this.minYValue, this.maxYValue);
               var point = transformation.transformPoint(
-                              new Point3D(-0.5 - labelshift, y, -0.5 - labelshift));
+                              new Point3D(-0.5 - labelshift, y, -0.5));
               canvasContext.font = labelfont; 
               canvasContext.fillText(val, point.ax, point.ay);
             }
         }
         
-        if ((euclidian_distance(cameraPosition, zLabelPoint) > euclidian_distance(cameraPosition, zOppositePoint)) ||
-            (euclidian_distance(cameraPosition, zLabelPoint) > euclidian_distance(cameraPosition, centerPoint)))
-        {
+        if (this.showZ) {
             canvasContext.font = axisfont; 
-            canvasContext.fillText(zTitle, transformedzLabelPoint.ax, transformedzLabelPoint.ay);
+            canvasContext.fillText(zTitle, zLabelPoint.ax, zLabelPoint.ay);
 
             for (i = 0; i < this.zTicks.length; i+= 1) {
               val = this.zTicks[i];
@@ -483,34 +481,6 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
         }
     };
     
-    var sort = function(array)
-    {
-        var len = array.length;
-        
-        if(len < 2)
-        { 
-            return array;
-        }
-        
-        var pivot = Math.ceil(len/2);
-        return merge(sort(array.slice(0,pivot)), sort(array.slice(pivot)));
-    };
- 
-    var merge = function(left, right)
-    {
-        var result = [];
-        while((left.length > 0) && (right.length > 0))
-        {
-            if(left[0].distanceFromCamera < right[0].distanceFromCamera)
-                result.push(left.shift());
-            else
-                result.push(right.shift());
-        }
- 
-        result = result.concat(left, right);
-        return result;
-    };
-    
     this.createAxes = function()
     {
         var axisOrigin = transformation.transformPoint(new Point3D(-0.5, 0.5, -0.5));
@@ -520,22 +490,19 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
 
         var axes = new Array();
 
-        var xAxis = new Polygon(cameraPosition);
-        xAxis.isAxis = true
+        var xAxis = new Polygon(cameraPosition, "axis");
         xAxis.addPoint(axisOrigin);
         xAxis.addPoint(xAxisEndPoint);
         xAxis.done()
         axes[axes.length] = xAxis;
 
-        var yAxis = new Polygon(cameraPosition);
-        yAxis.isAxis = true
+        var yAxis = new Polygon(cameraPosition, "axis");
         yAxis.addPoint(axisOrigin);
         yAxis.addPoint(yAxisEndPoint);
         yAxis.done()
         axes[axes.length] = yAxis;
 
-        var zAxis = new Polygon(cameraPosition);
-        zAxis.isAxis = true
+        var zAxis = new Polygon(cameraPosition, "axis");
         zAxis.addPoint(axisOrigin);
         zAxis.addPoint(zAxisEndPoint);
         zAxis.done()
@@ -544,6 +511,46 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
         return axes;
     };
     
+    this.createTicks = function()
+    {
+        var ticks = new Array();
+
+        if (this.showX) {
+          for (xi = 0; xi < this.xTicks.length; xi ++) {
+            x = this.scale_to(this.xTicks[xi], this.minXValue, this.maxXValue)
+            var line = new Polygon(cameraPosition, "tick");
+            line.addPoint(transformation.transformPoint(new Point3D(x, 0.5, -0.5)));
+            line.addPoint(transformation.transformPoint(new Point3D(x, 0.5 + this.tickLength, -0.5)));
+            line.done()
+            ticks[ticks.length] = line;
+          }
+        }
+
+        if (this.showY) {
+          for (yi = 0; yi < this.yTicks.length; yi ++) {
+            y = this.scale_to(this.yTicks[yi], this.minYValue, this.maxYValue)
+            var line = new Polygon(cameraPosition, "tick");
+            line.addPoint(transformation.transformPoint(new Point3D(-0.5, y, -0.5)));
+            line.addPoint(transformation.transformPoint(new Point3D(-0.5 - this.tickLength, y, -0.5)));
+            line.done()
+            ticks[ticks.length] = line;
+          }
+        }
+
+        if (this.showZ) {
+          for (zi = 0; zi < this.zTicks.length; zi ++) {
+            z = this.scale_to(this.zTicks[zi], this.minZValue, this.maxZValue)
+            var line = new Polygon(cameraPosition, "tick");
+            line.addPoint(transformation.transformPoint(new Point3D(-0.5, 0.5, z)));
+            line.addPoint(transformation.transformPoint(new Point3D(-0.5 - this.tickLength, 0.5 + this.tickLength, z)));
+            line.done()
+            ticks[ticks.length] = line;
+          }
+        }
+
+        return ticks
+    }
+        
     this.createGrid = function()
     {
         var gridlines = new Array();
@@ -552,8 +559,7 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
           for (zi = 0; zi < this.zTicks.length; zi ++) {
             y = this.scale_to(this.yTicks[yi], this.minYValue, this.maxYValue)
             z = this.scale_to(this.zTicks[zi], this.minZValue, this.maxZValue)
-            var line = new Polygon(cameraPosition);
-            line.isGridline = true
+            var line = new Polygon(cameraPosition, "grid");
             line.addPoint(transformation.transformPoint(new Point3D(-0.5, y, z)));
             line.addPoint(transformation.transformPoint(new Point3D(0.5, y, z)));
             line.done()
@@ -565,8 +571,7 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
           for (zi = 0; zi < this.zTicks.length; zi ++) {
             x = this.scale_to(this.xTicks[xi], this.minXValue, this.maxXValue)
             z = this.scale_to(this.zTicks[zi], this.minZValue, this.maxZValue)
-            var line = new Polygon(cameraPosition);
-            line.isGridline = true
+            var line = new Polygon(cameraPosition, "grid");
             line.addPoint(transformation.transformPoint(new Point3D(x, -0.5, z)));
             line.addPoint(transformation.transformPoint(new Point3D(x, 0.5, z)));
             line.done()
@@ -578,8 +583,7 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
           for (yi = 0; yi < this.yTicks.length; yi ++) {
             x = this.scale_to(this.xTicks[xi], this.minXValue, this.maxXValue)
             y = this.scale_to(this.yTicks[yi], this.minYValue, this.maxYValue)
-            var line = new Polygon(cameraPosition);
-            line.isGridline = true
+            var line = new Polygon(cameraPosition, "grid");
             line.addPoint(transformation.transformPoint(new Point3D(x, y, -0.5)));
             line.addPoint(transformation.transformPoint(new Point3D(x, y, 0.5)));
             line.done()
@@ -601,7 +605,7 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
         {
             for (j = 0; j < this.numYPoints-1; j++)
             {
-                var polygon = new Polygon(cameraPosition);
+                var polygon = new Polygon(cameraPosition, "data");
                 
                 polygon.addPoint(transformation.transformPoint(
                                      data3D[j + i * this.numYPoints]));
@@ -619,6 +623,29 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
         }
 
         return polygons;
+    };
+    
+    var sort = function(array)
+    {
+        var len = array.length;
+
+        if(len < 2) { return array; }
+        
+        var pivot = Math.ceil(len/2);
+        return merge(sort(array.slice(0,pivot)), sort(array.slice(pivot)));
+    };
+ 
+    var merge = function(left, right)
+    {
+        var result = [];
+        while((left.length > 0) && (right.length > 0))
+        {
+            if(left[0].distanceFromCamera < right[0].distanceFromCamera)
+                result.push(left.shift());
+            else
+                result.push(right.shift());
+        }
+        return result.concat(left, right);
     };
     
     this.getDefaultColourRamp = function()
@@ -1230,12 +1257,11 @@ euclidian_distance = function(p1, p2)
  * Polygon: This class represents a polygon on the surface plot.
  * ************************************************************
  */
-Polygon = function(cameraPosition)
+Polygon = function(cameraPosition, type)
 {
     this.points = new Array();
     this.cameraPosition = cameraPosition;
-    this.isAxis = false;
-    this.isGridline = false;
+    this.type = type;
     this.centroid = null;
     this.distanceFromCamera = null;
     
