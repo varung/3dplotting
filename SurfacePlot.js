@@ -60,7 +60,6 @@ SurfacePlot.prototype.draw = function(data, options)
     var zTitle = options.zTitle;
     var backColour = options.backColour;
     var axisTextColour = options.axisTextColour;
-    var hideFlatMinPolygons = options.hideFlatMinPolygons;
     var tooltipColour = options.tooltipColour;
     var origin = options.origin;
     var startXAngle = options.startXAngle;
@@ -72,7 +71,7 @@ SurfacePlot.prototype.draw = function(data, options)
         xTitle, yTitle, zTitle, 
         options.xTicks, options.yTicks, options.zTicks, 
         renderPoints, backColour, axisTextColour,
-        hideFlatMinPolygons, tooltipColour, origin, startXAngle, startZAngle, data);
+        tooltipColour, origin, startXAngle, startZAngle, data);
 
     this.surfacePlot.redraw();
 };
@@ -100,7 +99,7 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
     xTitle, yTitle, zTitle, 
     xTicks, yTicks, zTicks,
     renderPoints, backColour, axisTextColour,
-    hideFlatMinPolygons, tooltipColour, origin, startXAngle, startZAngle, data)
+    tooltipColour, origin, startXAngle, startZAngle, data)
 {
     this.xTitle = xTitle;
     this.yTitle = yTitle;
@@ -316,13 +315,12 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
           if (renderPoints)
           {
               for (i = 0; i < data3ds.length; i++) {
-                  var point3d = data3ds[i];
                   canvasContext.fillStyle = '#ff2222';
-                  var transformedPoint = transformation.ChangeObjectPoint(point3d);
-                  transformedPoint.dist = distance({x:transformedPoint.ax, y:transformedPoint.ay}, {x:cameraPosition.ax, y:cameraPosition.ay});
+                  var point = transformation.transformPoint(data3ds[i]);
+                  point.dist = distance({x:point.ax, y:point.ay}, {x:cameraPosition.ax, y:cameraPosition.ay});
                   
-                  var x = transformedPoint.ax;
-                  var y = transformedPoint.ay;
+                  var x = point.ax;
+                  var y = point.ay;
                   
                   canvasContext.beginPath();
                   var dotSize = JSSurfacePlot.DATA_DOT_SIZE;
@@ -332,19 +330,23 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
               }
           }
         
-          var axes = this.createAxes();
-          if (this.gridOn) {
-            var grid = this.createGrid();
-          }
           var polygons = this.createPolygons(data3ds);
-          
+
+          var axes = this.createAxes();
           for (i = 0; i < axes.length; i++)
               polygons[polygons.length] = axes[i];
+
+          this.gridOn = true
+          if (this.gridOn) {
+            var grid = this.createGrid();
+            for (i = 0; i < grid.length; i++)
+                polygons[polygons.length] = grid[i];
+          }
         
           // Sort the polygons so that the closest ones are rendered last
           // and therefore are not occluded by those behind them.
           // This is really Painter's algorithm.
-          polygons.sort(PolygonComaparator);
+          polygons.sort(PolygonComparator);
           
           canvasContext.lineWidth = 1;
           canvasContext.lineJoin = "round";
@@ -353,7 +355,7 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
           {
               var polygon = polygons[i];
               
-              if (polygon.isAnAxis())
+              if (polygon.isAxis)
               {
                   var p1 = polygon.getPoint(0);
                   var p2 = polygon.getPoint(1);
@@ -362,6 +364,17 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
                   canvasContext.moveTo(p1.ax, p1.ay);
                   canvasContext.lineTo(p2.ax, p2.ay);
                   canvasContext.strokeStyle='#000'; // axis color
+                  canvasContext.stroke();
+              }
+              else if (polygon.isGridline)
+              {
+                  var p1 = polygon.getPoint(0);
+                  var p2 = polygon.getPoint(1);
+                  
+                  canvasContext.beginPath();
+                  canvasContext.moveTo(p1.ax, p1.ay);
+                  canvasContext.lineTo(p2.ax, p2.ay);
+                  canvasContext.strokeStyle='rgba(0, 0, 0, 0.1)'; // axis color
                   canvasContext.stroke();
               }
               else
@@ -417,9 +430,9 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
 
         var centerPoint = new Point3D(0.0, 0.0, 0.0);
         
-        var transformedyLabelPoint = transformation.ChangeObjectPoint(yLabelPoint);
-        var transformedzLabelPoint = transformation.ChangeObjectPoint(zLabelPoint);
-        var transformedxLabelPoint = transformation.ChangeObjectPoint(xLabelPoint);
+        var transformedyLabelPoint = transformation.transformPoint(yLabelPoint);
+        var transformedzLabelPoint = transformation.transformPoint(zLabelPoint);
+        var transformedxLabelPoint = transformation.transformPoint(xLabelPoint);
         
         var xAxis = axes[0];
         var yAxis = axes[1];
@@ -444,10 +457,10 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
             for (i = 0; i < this.xTicks.length; i+= 1) {
               val = this.xTicks[i];
               x = ((val - xmin) / (xmax - xmin)) - 0.5
-              var point = new Point3D(x, 0.5 + labelshift, -0.5 - labelshift);
-              var transformedPoint = transformation.ChangeObjectPoint(point);
+              var point = transformation.transformPoint(
+                              new Point3D(x, 0.5 + labelshift, -0.5 - labelshift));
               canvasContext.font = labelfont; 
-              canvasContext.fillText(val, transformedPoint.ax, transformedPoint.ay);
+              canvasContext.fillText(val, point.ax, point.ay);
             }
 
         }
@@ -464,10 +477,10 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
             for (i = 0; i < this.yTicks.length; i+= 1) {
               val = this.yTicks[i];
               y = ((val - ymin) / (ymax - ymin)) - 0.5
-              var point = new Point3D(-0.5 - labelshift, y, -0.5 - labelshift);
-              var transformedPoint = transformation.ChangeObjectPoint(point);
+              var point = transformation.transformPoint(
+                              new Point3D(-0.5 - labelshift, y, -0.5 - labelshift));
               canvasContext.font = labelfont; 
-              canvasContext.fillText(val, transformedPoint.ax, transformedPoint.ay);
+              canvasContext.fillText(val, point.ax, point.ay);
             }
         }
         
@@ -483,10 +496,10 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
             for (i = 0; i < this.zTicks.length; i+= 1) {
               val = this.zTicks[i];
               z = ((val - zmin) / (zmax - zmin)) - 0.5
-              var point = new Point3D(-0.5 - labelshift, 0.5 + labelshift, z);
-              var transformedPoint = transformation.ChangeObjectPoint(point);
+              var point = transformation.transformPoint(
+                              new Point3D(-0.5 - labelshift, 0.5 + labelshift, z));
               canvasContext.font = labelfont; 
-              canvasContext.fillText(val, transformedPoint.ax, transformedPoint.ay);
+              canvasContext.fillText(val, point.ax, point.ay);
             }
         }
     };
@@ -510,13 +523,9 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
         while((left.length > 0) && (right.length > 0))
         {
             if(left[0].distanceFromCamera < right[0].distanceFromCamera)
-            {
                 result.push(left.shift());
-            }
             else
-            {
                 result.push(right.shift());
-            }
         }
  
         result = result.concat(left, right);
@@ -525,37 +534,32 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
     
     this.createAxes = function()
     {
-        var axisOrigin  = new Point3D(-0.5, 0.5, -0.5);
-        var xAxisEndPoint = new Point3D(0.5, 0.5, -0.5);
-        var yAxisEndPoint = new Point3D(-0.5, -0.5, -0.5);
-        var zAxisEndPoint = new Point3D(-0.5, 0.5, 0.5);
-    
-        var transformedAxisOrigin = transformation.ChangeObjectPoint(axisOrigin);
-        var transformedXAxisEndPoint = transformation.ChangeObjectPoint(xAxisEndPoint);
-        var transformedYAxisEndPoint = transformation.ChangeObjectPoint(yAxisEndPoint);
-        var transformedZAxisEndPoint = transformation.ChangeObjectPoint(zAxisEndPoint);
+        var axisOrigin = transformation.transformPoint(new Point3D(-0.5, 0.5, -0.5));
+        var xAxisEndPoint = transformation.transformPoint(new Point3D(0.5, 0.5, -0.5));
+        var yAxisEndPoint = transformation.transformPoint(new Point3D(-0.5, -0.5, -0.5));
+        var zAxisEndPoint = transformation.transformPoint(new Point3D(-0.5, 0.5, 0.5));
 
         var axes = new Array();
 
-        var xAxis = new Polygon(cameraPosition, true);
-        xAxis.addPoint(transformedAxisOrigin);
-        xAxis.addPoint(transformedXAxisEndPoint);
-        xAxis.calculateCentroid();
-        xAxis.calculateDistance();
+        var xAxis = new Polygon(cameraPosition);
+        xAxis.isAxis = true
+        xAxis.addPoint(axisOrigin);
+        xAxis.addPoint(xAxisEndPoint);
+        xAxis.done()
         axes[axes.length] = xAxis;
 
-        var yAxis = new Polygon(cameraPosition, true);
-        yAxis.addPoint(transformedAxisOrigin);
-        yAxis.addPoint(transformedYAxisEndPoint);
-        yAxis.calculateCentroid();
-        yAxis.calculateDistance();
+        var yAxis = new Polygon(cameraPosition);
+        yAxis.isAxis = true
+        yAxis.addPoint(axisOrigin);
+        yAxis.addPoint(yAxisEndPoint);
+        yAxis.done()
         axes[axes.length] = yAxis;
 
-        var zAxis = new Polygon(cameraPosition, true);
-        zAxis.addPoint(transformedAxisOrigin);
-        zAxis.addPoint(transformedZAxisEndPoint);
-        zAxis.calculateCentroid();
-        zAxis.calculateDistance();
+        var zAxis = new Polygon(cameraPosition);
+        zAxis.isAxis = true
+        zAxis.addPoint(axisOrigin);
+        zAxis.addPoint(zAxisEndPoint);
+        zAxis.done()
         axes[axes.length] = zAxis;
         
         return axes;
@@ -563,44 +567,48 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
     
     this.createGrid = function()
     {
-        var axisOrigin  = new Point3D(-0.5, 0.5, -0.5);
-        var xAxisEndPoint = new Point3D(0.5, 0.5, -0.5);
-        var yAxisEndPoint = new Point3D(-0.5, -0.5, -0.5);
-        var zAxisEndPoint = new Point3D(-0.5, 0.5, 0.5);
-    
-        var transformedAxisOrigin = transformation.ChangeObjectPoint(axisOrigin);
-        var transformedXAxisEndPoint = transformation.ChangeObjectPoint(xAxisEndPoint);
-        var transformedYAxisEndPoint = transformation.ChangeObjectPoint(yAxisEndPoint);
-        var transformedZAxisEndPoint = transformation.ChangeObjectPoint(zAxisEndPoint);
-
-        var axes = new Array();
+        var gridlines = new Array();
 
         for (yi = 0; yi < this.yTicks.length; yi ++) {
           for (zi = 0; zi < this.zTicks.length; zi ++) {
+            y = this.scale_to(this.yTicks[yi], this.minYValue, this.maxYValue)
+            z = this.scale_to(this.zTicks[zi], this.minZValue, this.maxZValue)
+            var line = new Polygon(cameraPosition);
+            line.isGridline = true
+            line.addPoint(transformation.transformPoint(new Point3D(-0.5, y, z)));
+            line.addPoint(transformation.transformPoint(new Point3D(0.5, y, z)));
+            line.done()
+            gridlines[gridlines.length] = line;
           }
         }
-        var xAxis = new Polygon(cameraPosition, true);
-        xAxis.addPoint(transformedAxisOrigin);
-        xAxis.addPoint(transformedXAxisEndPoint);
-        xAxis.calculateCentroid();
-        xAxis.calculateDistance();
-        axes[axes.length] = xAxis;
-
-        var yAxis = new Polygon(cameraPosition, true);
-        yAxis.addPoint(transformedAxisOrigin);
-        yAxis.addPoint(transformedYAxisEndPoint);
-        yAxis.calculateCentroid();
-        yAxis.calculateDistance();
-        axes[axes.length] = yAxis;
-
-        var zAxis = new Polygon(cameraPosition, true);
-        zAxis.addPoint(transformedAxisOrigin);
-        zAxis.addPoint(transformedZAxisEndPoint);
-        zAxis.calculateCentroid();
-        zAxis.calculateDistance();
-        axes[axes.length] = zAxis;
         
-        return axes;
+        for (xi = 0; xi < this.xTicks.length; xi ++) {
+          for (zi = 0; zi < this.zTicks.length; zi ++) {
+            x = this.scale_to(this.xTicks[xi], this.minXValue, this.maxXValue)
+            z = this.scale_to(this.zTicks[zi], this.minZValue, this.maxZValue)
+            var line = new Polygon(cameraPosition);
+            line.isGridline = true
+            line.addPoint(transformation.transformPoint(new Point3D(x, -0.5, z)));
+            line.addPoint(transformation.transformPoint(new Point3D(x, 0.5, z)));
+            line.done()
+            gridlines[gridlines.length] = line;
+          }
+        }
+        
+        for (xi = 0; xi < this.xTicks.length; xi ++) {
+          for (yi = 0; yi < this.yTicks.length; yi ++) {
+            x = this.scale_to(this.xTicks[xi], this.minXValue, this.maxXValue)
+            y = this.scale_to(this.yTicks[yi], this.minYValue, this.maxYValue)
+            var line = new Polygon(cameraPosition);
+            line.isGridline = true
+            line.addPoint(transformation.transformPoint(new Point3D(x, y, -0.5)));
+            line.addPoint(transformation.transformPoint(new Point3D(x, y, 0.5)));
+            line.done()
+            gridlines[gridlines.length] = line;
+          }
+        }
+        
+        return gridlines;
     };
     
     this.createPolygons = function(data3D)
@@ -614,28 +622,17 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
         {
             for (j = 0; j < this.numYPoints-1; j++)
             {
-                var polygon = new Polygon(cameraPosition, false);
+                var polygon = new Polygon(cameraPosition);
                 
-                var rawP1 = data3D[j + (i * this.numYPoints)];
-                var rawP2 = data3D[j + (i * this.numYPoints) + this.numYPoints];
-                var rawP3 = data3D[j + (i * this.numYPoints) + this.numYPoints + 1];
-                var rawP4 = data3D[j + (i * this.numYPoints) + 1];
-                
-                if (hideFlatMinPolygons && (rawP2.lz == this.minZValue || (rawP1.lz == this.minZValue && rawP4.lz == this.minZValue) ||
-                ((rawP4.lz == this.minZValue || rawP3.lz == this.minZValue) && i > 1 && j > 0)))
-                    continue;
-
-                var p1 = transformation.ChangeObjectPoint(rawP1);
-                var p2 = transformation.ChangeObjectPoint(rawP2);
-                var p3 = transformation.ChangeObjectPoint(rawP3);
-                var p4 = transformation.ChangeObjectPoint(rawP4);
-
-                polygon.addPoint(p1);
-                polygon.addPoint(p2);
-                polygon.addPoint(p3);
-                polygon.addPoint(p4);
-                polygon.calculateCentroid();
-                polygon.calculateDistance();
+                polygon.addPoint(transformation.transformPoint(
+                                     data3D[j + i * this.numYPoints]));
+                polygon.addPoint(transformation.transformPoint(
+                                     data3D[j + (i + 1) * this.numYPoints]));
+                polygon.addPoint(transformation.transformPoint(
+                                     data3D[(j + 1) + (i + 1) * this.numYPoints]));
+                polygon.addPoint(transformation.transformPoint(
+                                     data3D[(j + 1) + i * this.numYPoints]));
+                polygon.done()
 
                 polygons[index] = polygon;
                 index++;
@@ -692,8 +689,6 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
         var index = 0;
         var colIndex;
         
-        var a = 1 / (this.maxZDataValue - this.minZDataValue);
-        var b = 0.5 - (this.minZValue * a);
         for (i = 0; i < this.numXPoints; i++) {
             for (j = 0; j < this.numYPoints; j++) {
                 	
@@ -703,7 +698,7 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
                                                this.zToRender[i][j],
                                                this.data.Colors[i][j]); 
                 } else {
-                  var color = a * this.zToRender[i][colIndex] + b;
+                  var color = this.scale_to(this.zToRender[i][colIndex], this.minZDataValue, this.maxZDataValue);
                   data3ds[index] = new Point3D(this.xToRender[i][j],  
                                                this.yToRender[i][j],  
                                                this.zToRender[i][j],
@@ -799,7 +794,6 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
     }
 
 		return values;
-		
     }
     
     this.log = function(base, value)
@@ -807,6 +801,15 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
   		return Math.log(value) / Math.log(base);
   	}
   
+    this.scale_to = function(x, min, max, scaled_min, scaled_max)
+    {
+      if (scaled_min == undefined) scaled_min = -0.5;
+      if (scaled_max == undefined) scaled_max = 0.5;
+      var a = (scaled_max - scaled_min) / (max - min + 0.0)
+      var b = scaled_max - a * max
+      return a * x + b
+    }
+
   	this.nice_num = function(x, rounddown)
   	{
       if (x == 0) {
@@ -1301,35 +1304,21 @@ euclidian_distance = function(p1, p2)
  * Polygon: This class represents a polygon on the surface plot.
  * ************************************************************
  */
-Polygon = function(cameraPosition, isAxis)
+Polygon = function(cameraPosition)
 {
     this.points = new Array();
     this.cameraPosition = cameraPosition;
-    this.isAxis = isAxis;
+    this.isAxis = false;
+    this.isGridline = false;
     this.centroid = null;
     this.distanceFromCamera = null;
-    
-    this.isAnAxis = function()
-    {
-        return this.isAxis;
-    };
     
     this.addPoint = function(point)
     {
         this.points[this.points.length] = point;
     };
     
-    this.distance = function()
-    {
-        return euclidian_distance(this.cameraPosition, this.centroid);
-    };
-    
-    this.calculateDistance = function()
-    {
-        this.distanceFromCamera = this.distance();
-    };
-
-    this.calculateCentroid = function()
+    this.done = function()
     {
         var xCentre = 0;
         var yCentre = 0;
@@ -1349,6 +1338,8 @@ Polygon = function(cameraPosition, isAxis)
         zCentre /= numPoints;
         
         this.centroid = new Point3D(xCentre, yCentre, zCentre);
+
+        this.distanceFromCamera = euclidian_distance(this.cameraPosition, this.centroid);
     };
     
     this.getPoint = function(i)
@@ -1358,21 +1349,19 @@ Polygon = function(cameraPosition, isAxis)
 };
 
 /*
- * PolygonComaparator: Class used to sort arrays of polygons.
+ * PolygonComparator: Class used to sort arrays of polygons.
  * ************************************************************
  */
-PolygonComaparator = function(p1, p2)
+PolygonComparator = function(p1, p2)
 {
     var diff = p1.distanceFromCamera - p2.distanceFromCamera;
     
-    if (diff == 0)
-        return 0;
-    else if (diff < 0)
+    if (diff < 0)
         return -1;
     else if (diff > 0)
         return 1;
-    
-    return 0;
+    else
+        return 0;
 };
 
 /*
@@ -1450,7 +1439,7 @@ Th3dtran = function()
         this.objectMatrix.matrixCopy(this.rMat);
     };
 
-    this.ChangeObjectPoint = function(p)
+    this.transformPoint = function(p)
     {
         p.ax = (p.lx * this.objectMatrix.getMatrix()[0][0] + p.ly * this.objectMatrix.getMatrix()[1][0] + p.lz * this.objectMatrix.getMatrix()[2][0] + this.objectMatrix.getMatrix()[3][0]);
         p.ay = (p.lx * this.objectMatrix.getMatrix()[0][1] + p.ly * this.objectMatrix.getMatrix()[1][1] + p.lz * this.objectMatrix.getMatrix()[2][1] + this.objectMatrix.getMatrix()[3][1]) - 100;
