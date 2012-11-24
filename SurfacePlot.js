@@ -31,7 +31,7 @@ SurfacePlot = function(container)
 };
 
 
-SurfacePlot.prototype.draw = function(data, options)
+SurfacePlot.prototype.draw = function(surface_data, options)
 {
     var xPos = options.xPos;
     var yPos = options.yPos;
@@ -71,7 +71,7 @@ SurfacePlot.prototype.draw = function(data, options)
         xTitle, yTitle, zTitle, 
         options.xTicks, options.yTicks, options.zTicks, 
         renderPoints, backColour, axisTextColour,
-        tooltipColour, origin, startXAngle, startZAngle, data);
+        tooltipColour, origin, startXAngle, startZAngle, surface_data);
 
     this.surfacePlot.redraw();
 };
@@ -99,7 +99,7 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
     xTitle, yTitle, zTitle, 
     xTicks, yTicks, zTicks,
     renderPoints, backColour, axisTextColour,
-    tooltipColour, origin, startXAngle, startZAngle, data)
+    tooltipColour, origin, startXAngle, startZAngle, surface_data)
 {
     this.xTitle = xTitle;
     this.yTitle = yTitle;
@@ -129,11 +129,9 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
     if (startZAngle != null && startZAngle != void 0)
         currentZAngle = startZAngle;
         
-    this.data = data;
-    var data3ds = null;
+    this.surface_data = surface_data;
+    var surface_points = null;
     var displayValues = null;
-    this.numXPoints = 0;
-    this.numYPoints = 0;
     var transformation;
     var cameraPosition;
     var colourGradient;
@@ -201,9 +199,6 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
     this.prepareData = function()
     {
 
-      this.numXPoints = this.data.zValues.length;
-      this.numYPoints = this.data.zValues[0].length;
-
     	this.minXValue = Number.MAX_VALUE;
       this.maxXValue = Number.MIN_VALUE;
     	this.minYValue = Number.MAX_VALUE;
@@ -211,19 +206,24 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
     	this.minZValue = Number.MAX_VALUE;
       this.maxZValue = Number.MIN_VALUE;
         
-      for (var i = 0; i < this.numXPoints; i++) {
-          for (var j = 0; j < this.numYPoints; j++) {
-              var x = this.data.xValues[i][j];
-              var y = this.data.yValues[i][j];
-              var z = this.data.zValues[i][j];
-              
-              if (x < this.minXValue) this.minXValue = x;
-              if (x > this.maxXValue) this.maxXValue = x;
-              if (y < this.minYValue) this.minYValue = y;
-              if (y > this.maxYValue) this.maxYValue = y;
-              if (z < this.minZValue) this.minZValue = z;
-              if (z > this.maxZValue) this.maxZValue = z;
+      if (this.surface_data != undefined) {
+        this.surface_data.n = this.surface_data.zValues.length;
+        this.surface_data.m = this.surface_data.zValues[0].length;
+
+        for (var i = 0; i < this.surface_data.n; i++) {
+          for (var j = 0; j < this.surface_data.m; j++) {
+            var x = this.surface_data.xValues[i][j];
+            var y = this.surface_data.yValues[i][j];
+            var z = this.surface_data.zValues[i][j];
+            
+            if (x < this.minXValue) this.minXValue = x;
+            if (x > this.maxXValue) this.maxXValue = x;
+            if (y < this.minYValue) this.minYValue = y;
+            if (y > this.maxYValue) this.maxYValue = y;
+            if (z < this.minZValue) this.minZValue = z;
+            if (z > this.maxZValue) this.maxZValue = z;
           }
+        }
       }
 
       this.maxZDataValue = this.maxZValue;
@@ -261,10 +261,8 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
   		document.onmousemove = null;
       document.onmousewheel = null;
 		
-      this.numXPoints = 0;
-      this.numYPoints = 0;
       canvasContext = null;
-      this.data = null;
+      this.surface_data = null;
       this.colourGradientObject = null;
     }
     
@@ -281,7 +279,6 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
     
     this.render = function()
     {
-        
           canvasContext.clearRect(0, 0, canvas.width, canvas.height);
           canvasContext.fillStyle = this.backColour;
           canvasContext.fillRect(0, 0, canvas.width, canvas.height);
@@ -307,9 +304,9 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
         
           if (renderPoints)
           {
-              for (i = 0; i < data3ds.length; i++) {
+              for (i = 0; i < surface_points.length; i++) {
                   canvasContext.fillStyle = '#ff2222';
-                  var point = transformation.transformPoint(data3ds[i]);
+                  var point = transformation.transformPoint(surface_points[i]);
                   point.dist = distance({x:point.ax, y:point.ay}, {x:cameraPosition.ax, y:cameraPosition.ay});
                   
                   var x = point.ax;
@@ -318,31 +315,31 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
                   canvasContext.beginPath();
                   var dotSize = JSSurfacePlot.DATA_DOT_SIZE;
                   
-                  canvasContext.arc((x - (dotSize / 2)), (y - (dotSize / 2)), 1, 0, self.Math.PI * 2, true);
+                  canvasContext.arc(x, y, dotSize, 0, self.Math.PI * 2, true);
                   canvasContext.fill();
               }
           }
 
-          var xAxisCenterPoint = transformation.transformPoint(new Point3D(0, 0.5, -0.5));
-          var yAxisCenterPoint = transformation.transformPoint(new Point3D(-0.5, 0, -0.5));
-          var zAxisCenterPoint = transformation.transformPoint(new Point3D(-0.5, 0.5, 0));
+          var yzFaceCenterPoint = transformation.transformPoint(new Point3D(-0.5, 0, 0));
+          var xzFaceCenterPoint = transformation.transformPoint(new Point3D(0, 0.5, 0));
+          var xyFaceCenterPoint = transformation.transformPoint(new Point3D(0, 0, -0.5));
   
-          var xOppositePoint = transformation.transformPoint(new Point3D(0, -0.5, 0.5));
-          var yOppositePoint = transformation.transformPoint(new Point3D(0.5, 0, 0.5));
-          var zOppositePoint = transformation.transformPoint(new Point3D(0.5, -0.5, 0));
+          var yzOppositePoint = transformation.transformPoint(new Point3D(0.5, 0, 0));
+          var xzOppositePoint = transformation.transformPoint(new Point3D(0, -0.5, 0));
+          var xyOppositePoint = transformation.transformPoint(new Point3D(0, 0, 0.5));
   
           var centerPoint = transformation.transformPoint(new Point3D(0.0, 0.0, 0.0));
           
-          this.showX = ((euclidian_distance(cameraPosition, xAxisCenterPoint) > euclidian_distance(cameraPosition, xOppositePoint)) ||
-              (euclidian_distance(cameraPosition, xAxisCenterPoint) > euclidian_distance(cameraPosition, centerPoint)))
+          this.showX = ((euclidian_distance(cameraPosition, xzFaceCenterPoint) > euclidian_distance(cameraPosition, xzOppositePoint)) ||
+              (euclidian_distance(cameraPosition, xyFaceCenterPoint) > euclidian_distance(cameraPosition, xyOppositePoint)))
   
-          this.showY = ((euclidian_distance(cameraPosition, yAxisCenterPoint) > euclidian_distance(cameraPosition, yOppositePoint)) ||
-              (euclidian_distance(cameraPosition, yAxisCenterPoint) > euclidian_distance(cameraPosition, centerPoint)))
+          this.showY = ((euclidian_distance(cameraPosition, xyFaceCenterPoint) > euclidian_distance(cameraPosition, xyOppositePoint)) ||
+              (euclidian_distance(cameraPosition, yzFaceCenterPoint) > euclidian_distance(cameraPosition, yzOppositePoint)))
   
-          this.showZ  = ((euclidian_distance(cameraPosition, zAxisCenterPoint) > euclidian_distance(cameraPosition, zOppositePoint)) ||
-              (euclidian_distance(cameraPosition, zAxisCenterPoint) > euclidian_distance(cameraPosition, centerPoint)))
-        
-          var polygons = this.createPolygons(data3ds);
+          this.showZ = ((euclidian_distance(cameraPosition, xzFaceCenterPoint) > euclidian_distance(cameraPosition, xzOppositePoint)) ||
+              (euclidian_distance(cameraPosition, yzFaceCenterPoint) > euclidian_distance(cameraPosition, yzOppositePoint)))
+  
+          var polygons = this.createPolygons(surface_points);
 
           var axes = this.createAxes();
           for (i = 0; i < axes.length; i++)
@@ -442,13 +439,15 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
             canvasContext.font = axisfont; 
             canvasContext.fillText(xTitle, xLabelPoint.ax, xLabelPoint.ay);
 
-            for (i = 0; i < this.xTicks.length; i+= 1) {
-              val = this.xTicks[i];
-              x = this.scale_to(val, this.minXValue, this.maxXValue);
-              var point = transformation.transformPoint(
-                              new Point3D(x, 0.5 + labelshift, -0.5));
-              canvasContext.font = labelfont; 
-              canvasContext.fillText(val, point.ax, point.ay);
+            if (this.ticksOn) {
+              for (i = 0; i < this.xTicks.length; i+= 1) {
+                val = this.xTicks[i];
+                x = this.scale_to(val, this.minXValue, this.maxXValue);
+                var point = transformation.transformPoint(
+                                new Point3D(x, 0.5 + labelshift, -0.5));
+                canvasContext.font = labelfont; 
+                canvasContext.fillText(val, point.ax, point.ay);
+              }
             }
         }
         
@@ -456,13 +455,15 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
             canvasContext.font = axisfont; 
             canvasContext.fillText(yTitle, yLabelPoint.ax, yLabelPoint.ay);
 
-            for (i = 0; i < this.yTicks.length; i+= 1) {
-              val = this.yTicks[i];
-              y = this.scale_to(val, this.minYValue, this.maxYValue);
-              var point = transformation.transformPoint(
-                              new Point3D(-0.5 - labelshift, y, -0.5));
-              canvasContext.font = labelfont; 
-              canvasContext.fillText(val, point.ax, point.ay);
+            if (this.ticksOn) {
+              for (i = 0; i < this.yTicks.length; i+= 1) {
+                val = this.yTicks[i];
+                y = this.scale_to(val, this.minYValue, this.maxYValue);
+                var point = transformation.transformPoint(
+                                new Point3D(-0.5 - labelshift, y, -0.5));
+                canvasContext.font = labelfont; 
+                canvasContext.fillText(val, point.ax, point.ay);
+              }
             }
         }
         
@@ -470,13 +471,15 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
             canvasContext.font = axisfont; 
             canvasContext.fillText(zTitle, zLabelPoint.ax, zLabelPoint.ay);
 
-            for (i = 0; i < this.zTicks.length; i+= 1) {
-              val = this.zTicks[i];
-              z = this.scale_to(val, this.minZValue, this.maxZValue);
-              var point = transformation.transformPoint(
-                              new Point3D(-0.5 - labelshift, 0.5 + labelshift, z));
-              canvasContext.font = labelfont; 
-              canvasContext.fillText(val, point.ax, point.ay);
+            if (this.ticksOn) {
+              for (i = 0; i < this.zTicks.length; i+= 1) {
+                val = this.zTicks[i];
+                z = this.scale_to(val, this.minZValue, this.maxZValue);
+                var point = transformation.transformPoint(
+                                new Point3D(-0.5 - labelshift, 0.5 + labelshift, z));
+                canvasContext.font = labelfont; 
+                canvasContext.fillText(val, point.ax, point.ay);
+              }
             }
         }
     };
@@ -594,34 +597,28 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
         return gridlines;
     };
     
-    this.createPolygons = function(data3D)
+    this.createPolygons = function(surface_points)
     {
-        var i;
-        var j;
         var polygons = new Array();
-        var index = 0;
-
-        for (i = 0; i < this.numXPoints - 1; i++)
+        for (var i = 0; i < this.surface_data.n - 1; i++)
         {
-            for (j = 0; j < this.numYPoints-1; j++)
+            for (var j = 0; j < this.surface_data.m-1; j++)
             {
                 var polygon = new Polygon(cameraPosition, "data");
                 
                 polygon.addPoint(transformation.transformPoint(
-                                     data3D[j + i * this.numYPoints]));
+                                     surface_points[ j    +  i    * this.surface_data.m]));
                 polygon.addPoint(transformation.transformPoint(
-                                     data3D[j + (i + 1) * this.numYPoints]));
+                                     surface_points[ j    + (i+1) * this.surface_data.m]));
                 polygon.addPoint(transformation.transformPoint(
-                                     data3D[(j + 1) + (i + 1) * this.numYPoints]));
+                                     surface_points[(j+1) + (i+1) * this.surface_data.m]));
                 polygon.addPoint(transformation.transformPoint(
-                                     data3D[(j + 1) + i * this.numYPoints]));
+                                     surface_points[(j+1) +  i    * this.surface_data.m]));
                 polygon.done()
 
-                polygons[index] = polygon;
-                index++;
+                polygons[polygons.length] = polygon;
             }
         }
-
         return polygons;
     };
     
@@ -688,25 +685,19 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
             marginY = (canvasHeight - drawingDim) / 2;
         }
         
-        var xPos, yPos;
-        var i, j;
-        var numPoints = this.numXPoints * this.numYPoints;
-        data3ds = new Array();
-        var index = 0;
-        
-        for (i = 0; i < this.numXPoints; i++) {
-            for (j = 0; j < this.numYPoints; j++) {
-                	
-                var x = this.scale_to(this.data.xValues[i][j], this.minXValue, this.maxXValue);
-                var y = this.scale_to(this.data.yValues[i][j], this.minYValue, this.maxYValue);
-                var z = this.scale_to(this.data.zValues[i][j], this.minZValue, this.maxZValue);
-                if ("Colors" in this.data) {
-                  var color = this.data.Colors[i][j];
+        var numPoints = this.surface_data.n * this.surface_data.m;
+        surface_points = new Array();
+        for (var i = 0; i < this.surface_data.n; i++) {
+            for (var j = 0; j < this.surface_data.m; j++) {
+                var x = this.scale_to(this.surface_data.xValues[i][j], this.minXValue, this.maxXValue);
+                var y = this.scale_to(this.surface_data.yValues[i][j], this.minYValue, this.maxYValue);
+                var z = this.scale_to(this.surface_data.zValues[i][j], this.minZValue, this.maxZValue);
+                if ("Colors" in this.surface_data) {
+                  var color = this.surface_data.Colors[i][j];
                 } else {
-                  var color = this.scale_to(this.data.zValues[i][j], this.minZDataValue, this.maxZDataValue, -1, 1);
+                  var color = this.scale_to(this.surface_data.zValues[i][j], this.minZDataValue, this.maxZDataValue, -1, 1);
                 }
-                data3ds[index] = new Point3D(x, y, z, color);
-                index++;
+                surface_points[surface_points.length] = new Point3D(x, y, z, color);
             }
         }
         
@@ -953,9 +944,9 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
             closestPointToMouse = null;
             var closestDist = Number.MAX_VALUE;
             
-            for (var i = 0; i < data3ds.length; i++)
+            for (var i = 0; i < surface_points.length; i++)
             {
-                var point = data3ds[i];
+                var point = surface_points[i];
                 var dist = distance({x:point.ax, y:point.ay}, currentPos);
     
                 if (dist < closestDist)

@@ -48,26 +48,14 @@ function plot3d(element, data, options)
         var colours = [colour1, colour2, colour3, colour4, colour5];
         
         // Axis labels.
-        var xAxisHeader = ""; // "X-axis";
-        var yAxisHeader = ""; // "Y-axis";
-        var zAxisHeader = ""; // "Z-axis";
         var xAxisHeader =  "X";
         var yAxisHeader =  "Y";
         var zAxisHeader =  "Z";
 
-        //var xticks = [0, 5, 10, 20];
-        //var yticks = [-0.4, 0, 0.4, 30];
-        //var zticks = [-100, 1000, 0];
-        var xticks; 
-        var yticks;
-        var zticks;
-        
         var renderDataPoints = false;
         var background = '#ffffff';
-        var axisForeColour = '#000000';
-        var hideFloorPolygons = true;
-        var chartOrigin = {x: 200, y:300};
-        //var chartOrigin = {x: 150, y:150};
+        var axisForeColour = '#000000'; // Color of axis stuff
+        var chartOrigin = {x: 200, y:300}; // Move the whole plot!
         
         // Options for the basic canvas pliot.
         options.renderPoints = renderDataPoints;
@@ -75,16 +63,16 @@ function plot3d(element, data, options)
         options.yPos  = 0; 
         options.width  = 400;
         options.height = 400;
+
         options.colourGradient = colours;
         options.xTitle = xAxisHeader;
         options.yTitle = yAxisHeader;
         options.zTitle = zAxisHeader;
-        options.xTicks = xticks;
-        options.yTicks = yticks; 
-        options.zTicks = zticks;
+        //options.xTicks = [0, 5, 10, 20];
+        //options.yTicks = [-0.4, 0, 0.4, 30];
+        //options.zTicks = [-100, 1000, 0];
         options.backColour = background;
         options.axisTextColour = axisForeColour;
-        options.hideFlatMinPolygons = hideFloorPolygons; 
         options.origin = chartOrigin;
 
         surfacePlot = new SurfacePlot(element);
