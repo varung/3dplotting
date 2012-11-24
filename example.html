@@ -65,8 +65,10 @@
 
       var data = {xValues: xvalues, yValues: yvalues, zValues: zvalues1};
       var data2 = { zValues: zvalues2};
+      var data3 = {xValues: zvalues2[0], yValues: yvalues[1], zValues: zvalues1[0]};
 				
-			mesh(document.getElementById("surfacePlotDiv"), data, options);
+			scatter(document.getElementById("surfacePlotDiv"), data3, options);
+			//mesh(document.getElementById("surfacePlotDiv"), data, options);
 			surf(document.getElementById("surfacePlotDiv2"), data2, options);
 			
 			function toggleChart(chkbox)

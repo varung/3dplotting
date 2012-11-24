@@ -216,6 +216,9 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
         surface_data.n = surface_data.zValues.length;
         surface_data.m = surface_data.zValues[0].length;
 
+    	  var minZ_cur = Number.MAX_VALUE;
+        var maxZ_cur = Number.MIN_VALUE;
+
         for (var i = 0; i < surface_data.n; i++) {
           for (var j = 0; j < surface_data.m; j++) {
             var x = surface_data.xValues[i][j];
@@ -228,12 +231,46 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
             if (y > this.maxYValue) this.maxYValue = y;
             if (z < this.minZValue) this.minZValue = z;
             if (z > this.maxZValue) this.maxZValue = z;
+
+            if (z < minZ_cur) minZ_cur = z;
+            if (z > maxZ_cur) maxZ_cur = z;
           }
         }
+        surface_data.minZ = minZ_cur;
+        surface_data.maxZ = maxZ_cur;
       }
 
-      this.maxZDataValue = this.maxZValue;
-      this.minZDataValue = this.minZValue;
+      for (var k = 0; k < this.scatters_data.length; k++) {
+        scatter_data = this.scatters_data[k];
+
+    	  var minZ_cur = Number.MAX_VALUE;
+        var maxZ_cur = Number.MIN_VALUE;
+
+        for (var i = 0; i < scatter_data.zValues.length; i++) {
+          var x = scatter_data.xValues[i];
+          var y = scatter_data.yValues[i];
+          var z = scatter_data.zValues[i];
+          
+          if (x < this.minXValue) this.minXValue = x;
+          if (x > this.maxXValue) this.maxXValue = x;
+          if (y < this.minYValue) this.minYValue = y;
+          if (y > this.maxYValue) this.maxYValue = y;
+          if (z < this.minZValue) this.minZValue = z;
+          if (z > this.maxZValue) this.maxZValue = z;
+
+          if (z < minZ_cur) minZ_cur = z;
+          if (z > maxZ_cur) maxZ_cur = z;
+          
+        }
+        scatter_data.minZ = minZ_cur;
+        scatter_data.maxZ = maxZ_cur;
+        console.log(scatter_data)
+        console.log(x,y,z)
+        console.log(minZ_cur)
+        console.log(maxZ_cur)
+        console.log(this.minXValue)
+        console.log(this.maxYValue)
+      }
 
       if (this.xTicks == undefined) 
         this.xTicks = this.calculateTicks(this.minXValue, this.maxXValue);
@@ -309,7 +346,7 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
           
           cameraPosition = new Point3D(drawingDim / 2.0 + marginX, drawingDim / 2.0 + marginY, -1000.0);
         
-          for (k = 0; k < scatters_data.length; k++) {
+          for (k = 0; k < this.scatters_data.length; k++) {
             scatter_points = scatters_points[k];
             for (i = 0; i < scatter_points.length; i++) {
               canvasContext.fillStyle = '#ff2222';
@@ -702,7 +739,7 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
         
         surfaces_points = new Array();
         for (var k = 0; k < this.surfaces_data.length; k++) {
-            var surface_data = surfaces_data[k];
+            var surface_data = this.surfaces_data[k];
             var numPoints = surface_data.n * surface_data.m;
             var surface_points = new Array();
             for (var i = 0; i < surface_data.n; i++) {
@@ -714,7 +751,7 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
                     if ("Colors" in surface_data) {
                       var color = surface_data.Colors[i][j];
                     } else {
-                      var color = this.scale_to(surface_data.zValues[i][j], this.minZDataValue, this.maxZDataValue, -1, 1);
+                      var color = this.scale_to(surface_data.zValues[i][j], surface_data.minZ, surface_data.maxZ, -1, 1);
                     }
                     surface_points_row[surface_points_row.length] = new Point3D(x, y, z, color);
                 }
@@ -725,16 +762,16 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
 
         scatters_points = new Array();
         for (var k = 0; k < this.scatters_data.length; k++) {
-            var scatter_data = scatters_data[k];
+            var scatter_data = this.scatters_data[k];
             var scatter_points = new Array();
-            for (var i = 0; i < scatter_data.n; i++) {
+            for (var i = 0; i < scatter_data.zValues.length; i++) {
                 var x = this.scale_to(scatter_data.xValues[i], this.minXValue, this.maxXValue);
                 var y = this.scale_to(scatter_data.yValues[i], this.minYValue, this.maxYValue);
                 var z = this.scale_to(scatter_data.zValues[i], this.minZValue, this.maxZValue);
                 if ("Colors" in scatter_data) {
                   var color = scatter_data.Colors[i][j];
                 } else {
-                  var color = this.scale_to(scatter_data.zValues[i][j], this.minZDataValue, this.maxZDataValue, -1, 1);
+                  var color = this.scale_to(scatter_data.zValues[i][j], scatter_data.minZ, scatter_data.maxZ, -1, 1);
                 }
                 scatter_points[scatter_points.length] = new Point3D(x, y, z, color);
             }
