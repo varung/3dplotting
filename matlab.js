@@ -75,8 +75,10 @@ function plot3d(element, data, options)
         options.axisTextColour = axisForeColour;
         options.origin = chartOrigin;
 
+        var surfaces_data = new Array();
+        surfaces_data[0] = data;
         surfacePlot = new SurfacePlot(element);
-        surfacePlot.draw(data, options);
+        surfacePlot.draw(surfaces_data, options);
 }
       
 // data has the following fields:
