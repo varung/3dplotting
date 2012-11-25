@@ -51,8 +51,6 @@ SurfacePlot.prototype.draw = function(options)
       var colourGradient = colours;
     }
     
-    var fillPolygons = options.fillPolygons;
-    
     var xTitle = options.xTitle;
     var yTitle = options.yTitle;
     var zTitle = options.zTitle;
@@ -65,7 +63,6 @@ SurfacePlot.prototype.draw = function(options)
     
     if (this.surfacePlot == undefined)
         this.surfacePlot = new JSSurfacePlot(xPos, yPos, w, h, colourGradient, this.containerElement, 
-        fillPolygons, 
         xTitle, yTitle, zTitle, 
         options.xTicks, options.yTicks, options.zTicks, 
         backColour, axisTextColour,
@@ -91,7 +88,6 @@ SurfacePlot.prototype.cleanUp = function()
  * *********************************
  */
 JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
-    fillRegions, 
     xTitle, yTitle, zTitle, 
     xTicks, yTicks, zTicks,
     backColour, axisTextColour,
@@ -444,7 +440,7 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
                   canvasContext.lineTo(p4.ax, p4.ay);
                   canvasContext.lineTo(p1.ax, p1.ay);
                   
-                  if (fillRegions)
+                  if (polygon.fill)
                       canvasContext.fill();
                   else
                       canvasContext.stroke();
@@ -660,7 +656,7 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
         {
             for (var j = 0; j < m-1; j++)
             {
-                var polygon = new Polygon(cameraPosition, "data");
+                var polygon = new Polygon(cameraPosition, "data", surface_points.fill);
                 
                 polygon.addPoint(transformation.transformPoint(
                                      surface_points[i][j]));
@@ -761,6 +757,7 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
                 }
                 surface_points[surface_points.length] = surface_points_row;
             }
+            surface_points.fill = surface_data.options.fill;
             surfaces_points[surfaces_points.length] = surface_points;
         }
 
@@ -1342,11 +1339,13 @@ euclidian_distance = function(p1, p2)
  * Polygon: This class represents a polygon on the surface plot.
  * ************************************************************
  */
-Polygon = function(cameraPosition, type)
+Polygon = function(cameraPosition, type, fill)
 {
     this.points = new Array();
     this.cameraPosition = cameraPosition;
     this.type = type;
+    if (fill == undefined) fill = false;
+    this.fill = fill;
     this.centroid = null;
     this.distanceFromCamera = null;
     

@@ -153,17 +153,19 @@ function parse_surf_args(arg1, arg2, arg3, arg4) {
 
 function surf(surface_plot, arg1, arg2, arg3, arg4) {
   options = {}
-  options.fillPolygons = true;
+  options.fill = true;
   data = parse_surf_args(arg1, arg2, arg3, arg4)
   data = get_surface_data_defaults(data);
+  data.options = options;
   return surface_plot.add_surface_data(data, options)
 }
 
 function mesh(surface_plot, arg1, arg2, arg3, arg4) {
   options = {}
-  options.fillPolygons = false
+  options.fill = false
   data = parse_surf_args(arg1, arg2, arg3, arg4)
   data = get_surface_data_defaults(data);
+  data.options = options;
   return surface_plot.add_surface_data(data, options)
 }
 
