@@ -1,3 +1,6 @@
+// TODO:  scale with div
+// 
+
 /*
  * SurfacePlot.js
  *
@@ -33,40 +36,9 @@ SurfacePlot = function(container)
 
 SurfacePlot.prototype.draw = function(options)
 {
-    var xPos = options.xPos;
-    var yPos = options.yPos;
-    var w = options.width;
-    var h = options.height;
-    if ("colourGradient" in options) {
-      var colourGradient = options.colourGradient;
-    }
-    else {
-      // Default colour gradient.
-      var colour1 = {red:0, green:0, blue:255};
-      var colour2 = {red:0, green:255, blue:255};
-      var colour3 = {red:0, green:255, blue:0};
-      var colour4 = {red:255, green:255, blue:0};
-      var colour5 = {red:255, green:0, blue:0};
-      var colours = [colour1, colour2, colour3, colour4, colour5];
-      var colourGradient = colours;
-    }
-    
-    var xTitle = options.xTitle;
-    var yTitle = options.yTitle;
-    var zTitle = options.zTitle;
-    var backColour = options.backColour;
-    var axisTextColour = options.axisTextColour;
-    var tooltipColour = options.tooltipColour;
-    var origin = options.origin;
-    var startXAngle = options.startXAngle;
-    var startZAngle = options.startZAngle;
     
     if (this.surfacePlot == undefined)
-        this.surfacePlot = new JSSurfacePlot(xPos, yPos, w, h, colourGradient, this.containerElement, 
-        xTitle, yTitle, zTitle, 
-        options.xTicks, options.yTicks, options.zTicks, 
-        backColour, axisTextColour,
-        tooltipColour, origin, startXAngle, startZAngle);
+        this.surfacePlot = new JSSurfacePlot(this.containerElement, options);
 };
 
 SurfacePlot.prototype.getChart = function()
@@ -87,27 +59,36 @@ SurfacePlot.prototype.cleanUp = function()
  * This class does most of the work.
  * *********************************
  */
-JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
-    xTitle, yTitle, zTitle, 
-    xTicks, yTicks, zTicks,
-    backColour, axisTextColour,
-    tooltipColour, origin, startXAngle, startZAngle)
+JSSurfacePlot = function(element, options)
 {
+    var targetElement = element;
+
+    var x = options.xPos;
+    var y = options.yPos;
+    var width = options.width;
+    var height = options.height;
+    var colourGradient = options.colourGradient;
+
+    this.backColour = options.backColour;
+    this.axisTextColour = options.axisTextColour;
+
+    var origin = options.origin;
+    var startXAngle = options.startXAngle;
+    var startZAngle = options.startZAngle;
+
     var self = this; 
 
-    this.xTitle = xTitle;
-    this.yTitle = yTitle;
-    this.zTitle = zTitle;
-    this.xTicks = xTicks;
-    this.yTicks = yTicks;
-    this.zTicks = zTicks;
+    this.xTitle = options.xTitle;
+    this.yTitle = options.yTitle;
+    this.zTitle = options.zTitle;
+    this.xTicks = options.xTicks;
+    this.yTicks = options.yTicks;
+    this.zTicks = options.zTicks;
 
     this.tickLength = 0.05
     this.gridOn = true
     this.ticksOn = true
 
-    this.backColour = backColour;
-    this.axisTextColour = axisTextColour;
     var targetDiv;
     var id;
     var canvas;
@@ -151,7 +132,7 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
     var xAxisTitleLabel = new Tooltip(true);
     var yAxisTitleLabel = new Tooltip(true);
     var zAxisTitleLabel = new Tooltip(true);
-    var tTip = new Tooltip(false, tooltipColour);
+    var tTip = new Tooltip(false, options.tooltipColour);
     
   	var canvas_support_checked = false;
   	var canvas_supported = true;
@@ -487,7 +468,7 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
 
         if (this.showX) {
             canvasContext.font = axisfont; 
-            canvasContext.fillText(xTitle, xLabelPoint.ax, xLabelPoint.ay);
+            canvasContext.fillText(this.xTitle, xLabelPoint.ax, xLabelPoint.ay);
 
             if (this.ticksOn) {
               for (i = 0; i < this.xTicks.length; i+= 1) {
@@ -503,7 +484,7 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
         
         if (this.showY) {
             canvasContext.font = axisfont; 
-            canvasContext.fillText(yTitle, yLabelPoint.ax, yLabelPoint.ay);
+            canvasContext.fillText(this.yTitle, yLabelPoint.ax, yLabelPoint.ay);
 
             if (this.ticksOn) {
               for (i = 0; i < this.yTicks.length; i+= 1) {
@@ -519,7 +500,7 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
         
         if (this.showZ) {
             canvasContext.font = axisfont; 
-            canvasContext.fillText(zTitle, zLabelPoint.ax, zLabelPoint.ay);
+            canvasContext.fillText(this.zTitle, zLabelPoint.ax, zLabelPoint.ay);
 
             if (this.ticksOn) {
               for (i = 0; i < this.zTicks.length; i+= 1) {

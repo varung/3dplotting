@@ -103,6 +103,14 @@ function get_surface_plot(element)
         options.axisTextColour = axisForeColour;
         options.origin = chartOrigin;
 
+        // Default colour gradient.
+        var colour1 = {red:0, green:0, blue:255};
+        var colour2 = {red:0, green:255, blue:255};
+        var colour3 = {red:0, green:255, blue:0};
+        var colour4 = {red:255, green:255, blue:0};
+        var colour5 = {red:255, green:0, blue:0};
+        options.colourGradient = [colour1, colour2, colour3, colour4, colour5];
+
         surfacePlot = new SurfacePlot(element);
         surfacePlot.draw(options);
         // TODO: remove this layer of indirection
@@ -147,7 +155,6 @@ function parse_surf_args(arg1, arg2, arg3, arg4) {
       data.colors = parse_mat(arg2)
     }
   } 
-  console.log(data)
   return data;
 }
 
