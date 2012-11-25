@@ -37,45 +37,62 @@
 
         xvalues = new Array();
         yvalues = new Array();
+
         colors = new Array();
+        
+        xvalues.rows = numRows; 
+        xvalues.cols = numCols; 
+        xvalues.data = new Array(); 
+        yvalues.rows = numRows; 
+        yvalues.cols = numCols; 
+        yvalues.data = new Array(); 
+        zvalues1.rows = numRows; 
+        zvalues1.cols = numCols; 
+        zvalues1.data = new Array(); 
+        zvalues2.rows = numRows; 
+        zvalues2.cols = numCols; 
+        zvalues2.data = new Array(); 
+
+        colors.rows = numRows; 
+        colors.cols = numCols; 
+        colors.data = new Array(); 
             
         for (var i = 0; i < numRows; i++) 
         {   
-          zvalues1[i] = new Array();
-          zvalues2[i] = new Array();
-          xvalues[i] = new Array();
-          yvalues[i] = new Array();
-          colors[i] = new Array();
-              
           for (var j = 0; j < numCols; j++)
           {   
             var value1 = 1000 * (Math.cos(i * d * Math.PI / 180.0) * Math.cos(j * d * Math.PI / 180.0) + Math.sin(i * d * Math.PI / 180.0));
             var value2 = 1000 * (Math.cos(i * d * Math.PI / 180.0) * Math.cos(j * d * Math.PI / 180.0) + Math.sin(i * d * Math.PI / 180.0));
                 
-            zvalues1[i][j] = value1 / 4.0 + 0.25;
-            zvalues2[i][j] = value2 / 6.0 + 0.25;
-            xvalues[i][j] = i / 2;
-            yvalues[i][j] = j / 2;
-            colors[i][j] = 0
+            var angle = Math.PI * 2 * j / (numCols - 1.0)
+            var heightangle = Math.PI * 2 * i / (numRows - 1.0)
+
+            zvalues1.data.push(value1 / 4.0 + 0.25);
+            zvalues2.data.push( Math.cos(heightangle)); // value2 / 6.0 + 0.25;
+            xvalues.data.push( Math.sin(heightangle) * Math.cos(angle)) //i / 2;
+            yvalues.data.push( Math.sin(heightangle) * Math.sin(angle)) //j / 2;
+            colors.data.push( 0)
             idx++;
           }   
         }   
 
-      var options = {}
-
-      var data = {xValues: xvalues, yValues: yvalues, zValues: zvalues1};
-      var data2 = { zValues: zvalues2};
-      var data3 = {xValues: zvalues2[0], yValues: yvalues[1], zValues: zvalues1[0]};
+      var data = {xValues: xvalues, yValues: yvalues, zValues: zvalues2};
+      var data2 = {xValues: xvalues, yValues: yvalues, zValues: zvalues1};
+      //var data2 =  { zValues: zvalues2};
+      var data3 = {xValues: zvalues2, yValues: yvalues, zValues: zvalues1};
 				
-			scatter(document.getElementById("surfacePlotDiv"), data3, options);
-			//mesh(document.getElementById("surfacePlotDiv"), data, options);
-			surf(document.getElementById("surfacePlotDiv2"), data2, options);
+			//scatter(document.getElementById("surfacePlotDiv"), data3, options);
+			surface_plot = get_surface_plot(document.getElementById("surfacePlotDiv"));
+			mesh(surface_plot, xvalues, yvalues, zvalues2);
+
+			surface_plot = get_surface_plot(document.getElementById("surfacePlotDiv2"));
+      surf(surface_plot, xvalues, yvalues, zvalues1);
 			
 			function toggleChart(chkbox)
             { 
                 surfacePlot.redraw();
             } 
-			
+		 	
 		</script>
 		
 	</body>

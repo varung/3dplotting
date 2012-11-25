@@ -31,7 +31,7 @@ SurfacePlot = function(container)
 };
 
 
-SurfacePlot.prototype.draw = function(surfaces_data, scatters_data, options)
+SurfacePlot.prototype.draw = function(options)
 {
     var xPos = options.xPos;
     var yPos = options.yPos;
@@ -52,7 +52,6 @@ SurfacePlot.prototype.draw = function(surfaces_data, scatters_data, options)
     }
     
     var fillPolygons = options.fillPolygons;
-    var renderPoints = options.renderPoints;
     
     var xTitle = options.xTitle;
     var yTitle = options.yTitle;
@@ -69,11 +68,8 @@ SurfacePlot.prototype.draw = function(surfaces_data, scatters_data, options)
         fillPolygons, 
         xTitle, yTitle, zTitle, 
         options.xTicks, options.yTicks, options.zTicks, 
-        renderPoints, backColour, axisTextColour,
-        tooltipColour, origin, startXAngle, startZAngle, 
-        surfaces_data, scatters_data);
-
-    this.surfacePlot.redraw();
+        backColour, axisTextColour,
+        tooltipColour, origin, startXAngle, startZAngle);
 };
 
 SurfacePlot.prototype.getChart = function()
@@ -98,10 +94,11 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
     fillRegions, 
     xTitle, yTitle, zTitle, 
     xTicks, yTicks, zTicks,
-    renderPoints, backColour, axisTextColour,
-    tooltipColour, origin, startXAngle, startZAngle, 
-    surfaces_data, scatters_data)
+    backColour, axisTextColour,
+    tooltipColour, origin, startXAngle, startZAngle)
 {
+    var self = this; 
+
     this.xTitle = xTitle;
     this.yTitle = yTitle;
     this.zTitle = zTitle;
@@ -130,8 +127,8 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
     if (startZAngle != null && startZAngle != void 0)
         currentZAngle = startZAngle;
         
-    this.surfaces_data = surfaces_data;
-    this.scatters_data = scatters_data;
+    this.surfaces_data = new Array();
+    this.scatters_data = new Array();
     var surfaces_points = null;
     var scatters_points = null;
     var displayValues = null;
@@ -197,10 +194,18 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
         if (!targetDiv) 
             return;
         
-        this.prepareData();
         this.createCanvas();
     };
-    
+
+    this.add_surface_data = function(surface_data, options) {
+      // TODO: deal with options properly
+      // Do separation of classes properly
+      this.surfaces_data[this.surfaces_data.length] = surface_data;
+      this.prepareData();
+      this.redraw();
+      return this.surfaces_data.length - 1;
+    }
+
     this.prepareData = function()
     {
 
@@ -264,12 +269,6 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
         }
         scatter_data.minZ = minZ_cur;
         scatter_data.maxZ = maxZ_cur;
-        console.log(scatter_data)
-        console.log(x,y,z)
-        console.log(minZ_cur)
-        console.log(maxZ_cur)
-        console.log(this.minXValue)
-        console.log(this.maxYValue)
       }
 
       if (this.xTicks == undefined) 
@@ -300,12 +299,13 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
     this.cleanUp = function()
     {
     	canvas.onmousedown = null;
-  		document.onmouseup = null;
-  		document.onmousemove = null;
-      document.onmousewheel = null;
+  		canvas.onmouseup = null;
+  		canvas.onmousemove = null;
+      canvas.onmousewheel = null;
 		
       canvasContext = null;
       this.surfaces_data = null;
+      this.scatters_data = null;
       this.colourGradientObject = null;
     }
     
@@ -317,7 +317,7 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
     function displayTooltip(e)
     {
         var position = new Point(e.x, e.y);
-        ttip = surfaces_data[closestSurfaceToMouse].tooltips[closestXToMouse][closestYToMouse]
+        ttip = self.surfaces_data[closestSurfaceToMouse].tooltips[closestXToMouse][closestYToMouse]
         tTip.show(ttip, 200);
     }
     
@@ -357,10 +357,14 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
               var y = point.ay;
               
               canvasContext.beginPath();
-              var dotSize = JSSurfacePlot.DATA_DOT_SIZE;
+              var dotSize = scatters_data[k].size;
               
               canvasContext.arc(x, y, dotSize, 0, self.Math.PI * 2, true);
-              canvasContext.fill();
+              if (scatters_data[k].filled) {
+                canvasContext.fill();
+              } else {
+                canvasContext.stroke();
+              }
             }
           }
 
@@ -748,8 +752,8 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
                     var x = this.scale_to(surface_data.xValues[i][j], this.minXValue, this.maxXValue);
                     var y = this.scale_to(surface_data.yValues[i][j], this.minYValue, this.maxYValue);
                     var z = this.scale_to(surface_data.zValues[i][j], this.minZValue, this.maxZValue);
-                    if ("Colors" in surface_data) {
-                      var color = surface_data.Colors[i][j];
+                    if ("colors" in surface_data) {
+                      var color = surface_data.colors[i][j];
                     } else {
                       var color = this.scale_to(surface_data.zValues[i][j], surface_data.minZ, surface_data.maxZ, -1, 1);
                     }
@@ -768,8 +772,8 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
                 var x = this.scale_to(scatter_data.xValues[i], this.minXValue, this.maxXValue);
                 var y = this.scale_to(scatter_data.yValues[i], this.minYValue, this.maxYValue);
                 var z = this.scale_to(scatter_data.zValues[i], this.minZValue, this.maxZValue);
-                if ("Colors" in scatter_data) {
-                  var color = scatter_data.Colors[i][j];
+                if ("colors" in scatter_data) {
+                  var color = scatter_data.colors[i][j];
                 } else {
                   var color = this.scale_to(scatter_data.zValues[i][j], scatter_data.minZ, scatter_data.maxZ, -1, 1);
                 }
@@ -813,7 +817,6 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
         targetDiv.style.left = x + "px";
         targetDiv.style.top = y + "px";
     };
-    
     
     this.initCanvas = function()
     {
@@ -1633,7 +1636,6 @@ Tooltip = function(useExplicitPositions, tooltipColour)
 
 JSSurfacePlot.DEFAULT_X_ANGLE   = 47;
 JSSurfacePlot.DEFAULT_Z_ANGLE   = 47;
-JSSurfacePlot.DATA_DOT_SIZE     = 5;
 JSSurfacePlot.DEFAULT_SCALE     = 200;
 JSSurfacePlot.MIN_SCALE         = 50;
 JSSurfacePlot.MAX_SCALE         = 1100;

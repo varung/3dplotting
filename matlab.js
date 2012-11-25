@@ -1,14 +1,14 @@
-function get_data_defaults(data) {
-  var numRows = data.zValues.length;
-  var numCols = data.zValues[0].length;
+function get_surface_data_defaults(data) {
+  data.n = data.zValues.length;
+  data.m = data.zValues[0].length;
 
   if (! (("xValues" in data) && ("yValues" in data)) ) {
      var xVals = new Array();
      var yVals = new Array();
-     for (var i = 0; i < numRows; i++){
+     for (var i = 0; i < data.n; i++){
          xVals[i] = new Array();
          yVals[i] = new Array();
-         for (var j = 0; j < numCols; j++) {
+         for (var j = 0; j < data.m; j++) {
            xVals[i][j] = i + 1;
            yVals[i][j] = j + 1;
          }
@@ -23,9 +23,9 @@ function get_data_defaults(data) {
 
   if (! ("tooltips" in options)) {
     var tooltipStrings = new Array();
-    for (var i = 0; i < numRows; i++)  {
+    for (var i = 0; i < data.n; i++)  {
       tooltipStrings[i] = new Array();
-      for (var j = 0; j < numCols; j++) {
+      for (var j = 0; j < data.m; j++) {
         tooltipStrings[i][j] = "x:" + data.xValues[i][j]
                           + ",\ny:" + data.yValues[i][j]
                           + ",\nz:" + data.zValues[i][j];
@@ -37,7 +37,35 @@ function get_data_defaults(data) {
   return data;
 }
 
-function plot3d(element, surface_data, scatter_data, options)
+function get_scatter_data_defaults(data) {
+  data.n = data.zValues.length;
+
+  if (! ("size" in options)) {
+    data.size = 5;
+  }
+
+  if (! ("color" in options)) {
+    data.color = 5;
+  }
+
+  if (! ("filled" in options)) {
+    data.filled = true;
+  }
+
+  if (! ("tooltips" in options)) {
+    var tooltipStrings = new Array();
+    for (var i = 0; i < data.n; i++)  {
+        tooltipStrings[i] = "x:" + data.xValues[i]
+                       + ",\ny:" + data.yValues[i]
+                       + ",\nz:" + data.zValues[i];
+    }
+    data.tooltips = tooltipStrings;
+  }
+
+  return data;
+}
+
+function get_surface_plot(element)
       {
 
         // Define a colour gradient.
@@ -53,13 +81,12 @@ function plot3d(element, surface_data, scatter_data, options)
         var yAxisHeader =  "Y";
         var zAxisHeader =  "Z";
 
-        var renderDataPoints = false;
         var background = '#ffffff';
         var axisForeColour = '#000000'; // Color of axis stuff
         var chartOrigin = {x: 200, y:300}; // Move the whole plot!
         
+        options = {};
         // Options for the basic canvas pliot.
-        options.renderPoints = renderDataPoints;
         options.xPos = 0;
         options.yPos  = 0; 
         options.width  = 400;
@@ -76,18 +103,10 @@ function plot3d(element, surface_data, scatter_data, options)
         options.axisTextColour = axisForeColour;
         options.origin = chartOrigin;
 
-        var surfaces_data = new Array();
-        if (surface_data !== undefined) {
-          surfaces_data[0] = surface_data;
-        }
-
-        var scatters_data = new Array();
-        if (scatter_data !== undefined) {
-          scatters_data[0] = scatter_data;
-        }
-
         surfacePlot = new SurfacePlot(element);
-        surfacePlot.draw(surfaces_data, scatters_data, options);
+        surfacePlot.draw(options);
+        // TODO: remove this layer of indirection
+        return surfacePlot.surfacePlot;
 }
       
 // data has the following fields:
@@ -95,20 +114,61 @@ function plot3d(element, surface_data, scatter_data, options)
 //  - xValues, yValues:  specify x and y coordinates.  Default to mesh([1, ... , n], [1, ... , m])
 //  - Colors:  defaults to using normalized z values
 
-function surf(element, data, options) {
+/* converts serialized matrix from octave into array of arrays */
+function parse_mat(x) 
+{
+  var res = [];
+  var rows = x.rows, cols = x.cols;
+  for(var i=0; i<rows; ++i){
+    var row = [];
+    for(var j=0; j<cols; ++j){
+      row.push( x.data[i + j*rows] );
+    }
+    res.push(row);
+  }
+  res.rows = rows;
+  res.cols = cols;
+  return res;
+}
+
+function parse_surf_args(arg1, arg2, arg3, arg4) {
+  var data = {}
+  if (arg3 != undefined) {
+    data.xValues = parse_mat(arg1)
+    data.yValues = parse_mat(arg2)
+    data.zValues = parse_mat(arg3)
+    if (arg4 != undefined) {
+      data.colors = parse_mat(arg4)
+    }
+  } else {
+    //assert (arg1 != undefined) 
+    data.zValues = parse_mat(arg1)
+    if (arg2 != undefined) {
+      data.colors = parse_mat(arg2)
+    }
+  } 
+  console.log(data)
+  return data;
+}
+
+function surf(surface_plot, arg1, arg2, arg3, arg4) {
+  options = {}
   options.fillPolygons = true;
-  data = get_data_defaults(data);
-  plot3d(element, data, undefined, options)
+  data = parse_surf_args(arg1, arg2, arg3, arg4)
+  data = get_surface_data_defaults(data);
+  return surface_plot.add_surface_data(data, options)
 }
 
-function mesh(element, data, options) {
+function mesh(surface_plot, arg1, arg2, arg3, arg4) {
+  options = {}
   options.fillPolygons = false
-  data = get_data_defaults(data);
-  plot3d(element, data, undefined, options)
+  data = parse_surf_args(arg1, arg2, arg3, arg4)
+  data = get_surface_data_defaults(data);
+  return surface_plot.add_surface_data(data, options)
 }
 
-function scatter(element, data, options) {
-  options.fillPolygons = false
-  data = get_data_defaults(data);
-  plot3d(element, undefined, data, options)
-}
+//function scatter(element, data, options) {
+//  options.fillPolygons = false
+//  data = get_scatter_data_defaults(data);
+//  plot3d(element, undefined, data, options)
+//}
